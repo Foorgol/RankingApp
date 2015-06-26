@@ -1,6 +1,8 @@
 #ifndef RANKINGDB_H
 #define RANKINGDB_H
 
+#include <memory.h>
+
 #include "SqliteDatabase.h"
 
 using namespace SqliteOverlay;
@@ -19,6 +21,8 @@ namespace RankingApp {
     RankingDb(string sqliteFilename, bool createNew) : SqliteDatabase(sqliteFilename, createNew) {}
 
   };
+
+  typedef unique_ptr<RankingDb> upRankingDb;
 }
 
 #endif  /* RANKINGDB_H */

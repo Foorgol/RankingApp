@@ -1,0 +1,14 @@
+#ifndef RANKINGERRCODES_H
+#define RANKINGERRCODES_H
+
+namespace RankingApp
+{
+  enum class ERR {
+    SUCCESS,
+    FILE_NOT_EXISTING_OR_INVALID,
+    FILE_ALREADY_EXISTS,
+    INVALID_FILENAME
+  };
+}
+
+#endif  /* RANKINGERRCODES */

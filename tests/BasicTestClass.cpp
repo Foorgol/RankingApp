@@ -1,4 +1,5 @@
 #include <boost/filesystem.hpp>
+#include <gtest/gtest.h>
 
 #include "BasicTestClass.h"
 #include "Logger.h"
@@ -73,4 +74,47 @@ void BasicTestFixture::printStartMsg(string _tcName)
 void BasicTestFixture::printEndMsg()
 {
   //log.info("----------- End test case '" + tcName + "' -----------\n\n");
+}
+
+//----------------------------------------------------------------------------
+
+unique_ptr<RankingApp::RankingSystem> BasicTestFixture::getEmptyRankingSys()
+{
+  //
+  // for some weird reason, ASSERT_xxx don't work in this function and
+  // result in compiler errors. Thus, I throw exceptions if something
+  // goes wrong.
+  //
+
+  // the database shall not exist
+  string dbFileName = getTestDatabaseName();
+  bfs::path dbPathObj(dbFileName);
+  if (bfs::exists(dbPathObj))
+  {
+    throw std::runtime_error("Database not empty at test case start!");
+  }
+
+  RankingApp::ERR err;
+  auto rs = RankingApp::RankingSystem::createEmpty(dbFileName, &err);
+  if ((rs == nullptr) || (err != RankingApp::ERR::SUCCESS))
+  {
+    throw std::runtime_error("Could not create test database");
+  }
+
+  return rs;
+}
+
+//----------------------------------------------------------------------------
+
+unique_ptr<RankingApp::RankingDb> BasicTestFixture::getDirectDatabaseHandle()
+{
+  // the database must exist
+  string dbFileName = getTestDatabaseName();
+  bfs::path dbPathObj(dbFileName);
+  if (!(bfs::exists(dbPathObj)))
+  {
+    throw std::runtime_error("Database file does not exist!");
+  }
+
+  return SqliteDatabase::get<RankingApp::RankingDb>(dbFileName, false);
 }

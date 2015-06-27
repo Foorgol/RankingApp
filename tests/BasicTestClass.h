@@ -7,6 +7,7 @@
 #include <boost/filesystem.hpp>
 
 #include "Logger.h"
+#include "RankingSystem.h"
 
 using namespace std;
 namespace boostfs = boost::filesystem;
@@ -33,6 +34,9 @@ protected:
   unique_ptr<SqliteOverlay::Logger> log;
   void printStartMsg(string _tcName);
   void printEndMsg();
+
+  unique_ptr<RankingApp::RankingSystem> getEmptyRankingSys();
+  unique_ptr<RankingApp::RankingDb> getDirectDatabaseHandle();
 
 private:
   string tcName;

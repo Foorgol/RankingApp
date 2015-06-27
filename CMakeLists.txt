@@ -42,6 +42,8 @@ set(LIB_SOURCES
     RankingErrCodes.h
     ConvenienceFuncs.h
     ConvenienceFuncs.cpp
+    PlayerMngr.cpp
+    Player.cpp
 )
 
 #
@@ -68,6 +70,7 @@ set(LIB_SOURCES_TST
     tests/BasicTestClass.cpp
     tests/tstConvenienceFuncs.cpp
     tests/tstRankingSys.cpp
+    tests/tstPlayerMngr.cpp
 )
 
 find_package(GTest)

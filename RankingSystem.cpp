@@ -30,6 +30,13 @@ bool RankingApp::RankingSystem::isValidFilename(const string& fname)
 
 //----------------------------------------------------------------------------
 
+PlayerMngr RankingSystem::getPlayerMngr() const
+{
+  return PlayerMngr(db.get());
+}
+
+//----------------------------------------------------------------------------
+
 RankingSystem::RankingSystem(upRankingDb _db)
 {
   // this checked should never trigger, because we only call

@@ -45,6 +45,7 @@ set(LIB_SOURCES
     PlayerMngr.cpp
     Player.cpp
     ValidityPeriod.cpp
+    ScoreQueue.cpp
 )
 
 #
@@ -73,6 +74,7 @@ set(LIB_SOURCES_TST
     tests/tstRankingSys.cpp
     tests/tstPlayerMngr.cpp
     tests/tstValidityPeriod.cpp
+    tests/tstScoreQueue.cpp
 )
 
 find_package(GTest)

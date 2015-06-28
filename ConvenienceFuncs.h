@@ -5,10 +5,16 @@
 #include <functional>
 #include <cctype>
 #include <locale>
+#include <vector>
+#include <sstream>
 
 #include "RankingErrCodes.h"
 
+using namespace std;
+
 namespace RankingApp {
+
+  typedef vector<string> StringList;
 
   class ConvenienceFuncs
   {
@@ -32,6 +38,10 @@ namespace RankingApp {
     static inline std::string &trim(std::string &s) {
             return ltrim(rtrim(s));
     }
+
+    // split string by delimiter character
+    static StringList& splitString(const string& s, char delim, vector<string>& elems);
+    static StringList splitString(const string& s, char delim);
 
     // assign an error value to a pointer
     static inline void setErr(ERR* ptr, ERR val)

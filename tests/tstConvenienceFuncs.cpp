@@ -25,3 +25,6 @@ TEST(ConvenienceFuncs, Trim)
   ConvenienceFuncs::trim(s);
   ASSERT_EQ("abc", s);
 }
+
+//----------------------------------------------------------------------------
+

@@ -44,6 +44,7 @@ set(LIB_SOURCES
     ConvenienceFuncs.cpp
     PlayerMngr.cpp
     Player.cpp
+    ValidityPeriod.cpp
 )
 
 #
@@ -71,6 +72,7 @@ set(LIB_SOURCES_TST
     tests/tstConvenienceFuncs.cpp
     tests/tstRankingSys.cpp
     tests/tstPlayerMngr.cpp
+    tests/tstValidityPeriod.cpp
 )
 
 find_package(GTest)

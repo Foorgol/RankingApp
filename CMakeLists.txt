@@ -1,8 +1,8 @@
 #
 # Configure what to build
 #
-set(BUILD_WEB_APP 0)   # the web application
-set(BUILD_TESTS 1)     # unit tests
+set(BUILD_WEB_APP 1)   # the web application
+set(BUILD_TESTS 0)     # unit tests
 
 #
 # Basic settings

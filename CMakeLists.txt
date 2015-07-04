@@ -1,9 +1,9 @@
 #
 # Configure what to build
 #
-set(BUILD_WEB_APP 0)   # the web application
+set(BUILD_WEB_APP 1)   # the web application
 set(BUILD_TESTS 0)     # unit tests
-set(BUILD_IMPORTER 1)  # an importer for the old database content
+set(BUILD_IMPORTER 0)  # an importer for the old database content
 
 #
 # Basic settings

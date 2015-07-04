@@ -1,8 +1,9 @@
 #
 # Configure what to build
 #
-set(BUILD_WEB_APP 1)   # the web application
+set(BUILD_WEB_APP 0)   # the web application
 set(BUILD_TESTS 0)     # unit tests
+set(BUILD_IMPORTER 1)  # an importer for the old database content
 
 #
 # Basic settings
@@ -19,6 +20,12 @@ set(SQLITE_OVERLAY_LIB_DIR "../SqliteOverlay-build")
 set(SQLITE_OVERLAY_LIB "SqliteOverlay")
 
 #
+# Find Boost and GTest
+#
+find_package(GTest)
+find_package(Boost COMPONENTS filesystem system)
+
+#
 # The WebToolkit (Wt)
 #
 set(WT_LIB "wt")
@@ -30,6 +37,13 @@ set(WT_CONNECTOR "wthttp")
 set(APP_SOURCES
     app/RankingApp.cpp
     main.cpp
+)
+
+#
+# The data import tool
+#
+set(IMPORTER_SOURCES
+    importer/importer.cpp
 )
 
 #
@@ -65,6 +79,13 @@ if (BUILD_WEB_APP)
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Logic ${WT_LIB} ${WT_CONNECTOR})
 endif (BUILD_WEB_APP)
 
+if (BUILD_IMPORTER AND Boost_FOUND)
+    add_executable(${PROJECT_NAME}_importer ${IMPORTER_SOURCES})
+    set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD 11)
+    set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES})
+endif (BUILD_IMPORTER AND Boost_FOUND)
+
 #
 # Unit tests
 #
@@ -76,9 +97,6 @@ set(LIB_SOURCES_TST
     tests/tstValidityPeriod.cpp
     tests/tstScoreQueue.cpp
 )
-
-find_package(GTest)
-find_package(Boost COMPONENTS filesystem system)
 
 if (GTEST_FOUND AND Boost_FOUND AND BUILD_TESTS)
     include_directories("." ${GTEST_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})

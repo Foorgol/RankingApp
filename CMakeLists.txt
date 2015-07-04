@@ -38,6 +38,7 @@ set(APP_SOURCES
     app/RankingApp.cpp
     main.cpp
     app/urls.h
+    app/LazyContentLoader.cpp
 )
 
 #

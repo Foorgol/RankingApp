@@ -10,10 +10,12 @@
 #include <Wt/WAnchor>
 #include <Wt/WEnvironment>
 #include <Wt/WString>
+#include <Wt/WApplication>
 
 #include "RankingApp.h"
 #include "RankingSystem.h"
 #include "urls.h"
+#include "ConvenienceFuncs.h"
 
 RankingApp::RankingApp::RankingApp(const Wt::WEnvironment& env, const string& dbPath)
   :WApplication(env)
@@ -45,15 +47,35 @@ RankingApp::RankingApp::RankingApp(const Wt::WEnvironment& env, const string& db
     return;
   }
 
+  //
   // initialize the rest of the web app if we could
   // successfully open the database
+  //
+
+  // set theme and title
   WBootstrapTheme* theme = new WBootstrapTheme();
   theme->setVersion(WBootstrapTheme::Version3);
   setTheme(theme);
-  setTitle("Hello World - " + env.deploymentPath());
+  setTitle("USC Rangliste");
+
+  // intialize the container for the main display content
+  mainContainer = new LazyContentLoader();
+  mainContainer->setStyleClass("contents");
+
+  // create the menu
   createMenuBar();
 
+  // add the main container to the root window
+  root()->addWidget(mainContainer);
 
+  // connect the handler for internal path changes
+  WApplication *app = WApplication::instance();
+  app->internalPathChanged().connect(std::bind([=] () {
+    onInternalPathChanged();
+  }));
+
+  // initialize / show the default content
+  onInternalPathChanged();
 }
 
 //----------------------------------------------------------------------------
@@ -66,11 +88,6 @@ void RankingApp::RankingApp::createMenuBar()
   WNavigationBar* navBar = new WNavigationBar(c);
   navBar->setTitle("USC Badminton", "http://www.google.com");
   navBar->setResponsive(true);
-
-  // the container for the main content of the screen;
-  // the content is switched by different menu selections
-  mainContainer = new WStackedWidget(c);
-  mainContainer->setStyleClass("contents");
 
   // a helper function for adding a text item linked to
   // an internal URL to a menu
@@ -88,13 +105,36 @@ void RankingApp::RankingApp::createMenuBar()
   addLinkItem(leftMenu, "Doppel", DOUBLES_URL);
 
   // create a sub-menu for various info-elements
-  WMenu* infoMenu = new WMenu(mainContainer, c);
+  WMenu* infoMenu = new WMenu();
+  infoMenu->setInternalPathEnabled(BASE_URL);
   addLinkItem(infoMenu, "Alle Spieler", ALL_PLAYERS_URL);
 
   // add the info menu to the left menu
   leftMenu->addMenu("Infos", infoMenu);
 
-  c->addWidget(mainContainer);
-
   root()->addWidget(c);
+}
+
+//----------------------------------------------------------------------------
+
+void RankingApp::RankingApp::onInternalPathChanged()
+{
+  WApplication *app = WApplication::instance();
+  string fullPath = app->internalPath();
+
+  // an ugly method to get only the last path component
+  StringList pathComp = ConvenienceFuncs::splitString(fullPath, '/');
+  string pageName = pathComp.at(pathComp.size() - 1);
+
+  LazyContentLoader::CONTENT_TYPE newContent = LazyContentLoader::CONTENT_TYPE::ERROR;
+  if (pageName == SINGLES_URL)
+  {
+    newContent = LazyContentLoader::CONTENT_TYPE::SINGLES_RANKING;
+  }
+  if (pageName == DOUBLES_URL)
+  {
+    newContent = LazyContentLoader::CONTENT_TYPE::DOUBLES_RANKING;
+  }
+
+  mainContainer->switchContent(newContent);
 }

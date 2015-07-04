@@ -10,6 +10,7 @@
 
 #include "SqliteDatabase.h"
 #include "RankingSystem.h"
+#include "LazyContentLoader.h"
 
 using namespace Wt;
 using namespace SqliteOverlay;
@@ -26,8 +27,9 @@ namespace RankingApp {
     upRankingSystem rankSys;
 
     void createMenuBar();
+    void onInternalPathChanged();
 
-    WStackedWidget* mainContainer;
+    LazyContentLoader* mainContainer;
   };
 
 }

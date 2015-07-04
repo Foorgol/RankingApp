@@ -3,8 +3,8 @@
 
 #define BASE_URL "/ranking"
 
-#define SINGLES_URL "/einzel"
-#define DOUBLES_URL "/doppel"
-#define ALL_PLAYERS_URL "/spieler"
+#define SINGLES_URL "einzel"
+#define DOUBLES_URL "doppel"
+#define ALL_PLAYERS_URL "spieler"
 
 #endif  /* RANKINGURLS_H */

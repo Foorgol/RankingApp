@@ -39,6 +39,7 @@ set(APP_SOURCES
     main.cpp
     app/urls.h
     app/LazyContentLoader.cpp
+    app/AllPlayersWidget.cpp
 )
 
 #

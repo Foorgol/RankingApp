@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <map>
 
 #include <Wt/WApplication>
 #include <Wt/WContainerWidget>
@@ -25,6 +26,7 @@ namespace RankingApp {
 
   private:
     upRankingSystem rankSys;
+    map<string, LazyContentLoader::CONTENT_TYPE> path2Content;
 
     void createMenuBar();
     void onInternalPathChanged();

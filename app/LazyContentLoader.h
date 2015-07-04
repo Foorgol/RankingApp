@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <map>
 
 #include <Wt/WStackedWidget>
 
@@ -20,17 +21,17 @@ namespace RankingApp {
     enum class CONTENT_TYPE {
       SINGLES_RANKING,
       DOUBLES_RANKING,
+      ALL_PLAYERS,
       ERROR,
     };
 
   public:
-    LazyContentLoader(WContainerWidget *parent=0);
+    LazyContentLoader(RankingSystem* rs, WContainerWidget *parent=0);
     void switchContent(CONTENT_TYPE newContent);
 
   private:
-    int singlesIdx = -1;
-    int doublesIdx = -1;
-    int errorIdx = -1;
+    map<LazyContentLoader::CONTENT_TYPE, int> content2Index;
+    RankingSystem* rankSys;
   };
 
 }

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "RankingDb.h"
 #include "RankingErrCodes.h"
@@ -28,12 +29,23 @@ namespace RankingApp {
     bool isInPeriod(const LocalTimestamp& lt) const;
     int determineRelationToPeriod(const LocalTimestamp& lt) const;
 
+    // getters
+    upLocalTimestamp getPeriodStart() const;
+    upLocalTimestamp getPeriodEnd() const;
+
+    // comparison functions for std::sort
+    static std::function<bool (ValidityPeriod&, ValidityPeriod&)> getPlayerSortFunction_byActivationDate();
+
   private:
     ValidityPeriod(SqliteDatabase* db, int rowId);
     ValidityPeriod(SqliteDatabase* db, TabRow row);
+
+    time_t getRawBeginTime() const;
+    time_t getRawEndTime() const;
   };
 
   typedef unique_ptr<ValidityPeriod> upValidity;
+  typedef vector<ValidityPeriod> ValidityPeriodList;
 }
 
 #endif  /* VALIDITYPERIOD_H */

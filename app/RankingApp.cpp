@@ -59,7 +59,7 @@ RankingApp::RankingApp::RankingApp(const Wt::WEnvironment& env, const string& db
   setTitle("USC Rangliste");
 
   // intialize the container for the main display content
-  mainContainer = new LazyContentLoader();
+  mainContainer = new LazyContentLoader(rankSys.get());
   mainContainer->setStyleClass("contents");
 
   // create the menu
@@ -94,6 +94,7 @@ void RankingApp::RankingApp::createMenuBar()
   auto addLinkItem = [](WMenu* m, const string& label, const string& link) {
     WMenuItem* mi = new WMenuItem(label);
     mi->setLink(Wt::WLink(Wt::WLink::InternalPath, link));
+    mi->setPathComponent(link);
     m->addItem(mi);
   };
 
@@ -106,13 +107,18 @@ void RankingApp::RankingApp::createMenuBar()
 
   // create a sub-menu for various info-elements
   WMenu* infoMenu = new WMenu();
-  infoMenu->setInternalPathEnabled(BASE_URL);
+  infoMenu->setInternalBasePath(BASE_URL);
   addLinkItem(infoMenu, "Alle Spieler", ALL_PLAYERS_URL);
 
   // add the info menu to the left menu
   leftMenu->addMenu("Infos", infoMenu);
 
   root()->addWidget(c);
+
+  // initialize the path--->content map
+  path2Content[SINGLES_URL] = LazyContentLoader::CONTENT_TYPE::SINGLES_RANKING;
+  path2Content[DOUBLES_URL] = LazyContentLoader::CONTENT_TYPE::DOUBLES_RANKING;
+  path2Content[ALL_PLAYERS_URL] = LazyContentLoader::CONTENT_TYPE::ALL_PLAYERS;
 }
 
 //----------------------------------------------------------------------------
@@ -126,14 +132,12 @@ void RankingApp::RankingApp::onInternalPathChanged()
   StringList pathComp = ConvenienceFuncs::splitString(fullPath, '/');
   string pageName = pathComp.at(pathComp.size() - 1);
 
+  // try to resolve the page name to a content type
   LazyContentLoader::CONTENT_TYPE newContent = LazyContentLoader::CONTENT_TYPE::ERROR;
-  if (pageName == SINGLES_URL)
+  auto itContent = path2Content.find(pageName);
+  if (itContent != path2Content.end())
   {
-    newContent = LazyContentLoader::CONTENT_TYPE::SINGLES_RANKING;
-  }
-  if (pageName == DOUBLES_URL)
-  {
-    newContent = LazyContentLoader::CONTENT_TYPE::DOUBLES_RANKING;
+    newContent = (*itContent).second;
   }
 
   mainContainer->switchContent(newContent);

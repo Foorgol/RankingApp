@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "RankingDb.h"
 #include "RankingErrCodes.h"
@@ -19,6 +20,10 @@ namespace RankingApp {
     friend class SqliteOverlay::GenericObjectManager;
 
   public:
+    string getName__FirstNameFirst() const;
+    string getName__LastNameFirst() const;
+    string getLastName() const;
+    string getFirstName() const;
 
   private:
     Player(SqliteDatabase* db, int rowId);
@@ -26,6 +31,7 @@ namespace RankingApp {
   };
 
   typedef unique_ptr<Player> upPlayer;
+  typedef vector<Player> PlayerList;
 }
 
 #endif  /* PLAYER_H */

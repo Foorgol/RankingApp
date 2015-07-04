@@ -172,9 +172,76 @@ bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int mo
 
 //----------------------------------------------------------------------------
 
+std::function<bool (Player&, Player&)> PlayerMngr::getPlayerSortFunction_byLastName()
+{
+  return [](Player& p1, Player& p2) {
+    // compare last name
+    int cmpLast = p1.getLastName().compare(p2.getLastName());
+    if (cmpLast < 0) return true;
+    if (cmpLast > 0) return false;
+
+    // last name is identical ==> compare first name
+    int cmpFirst = p1.getFirstName().compare(p2.getFirstName());
+    if (cmpFirst < 0) return true;
+    if (cmpFirst > 0) return false;
+
+    // names are identical. So we display the player who has registered earlier
+    // as the first player
+    if (p1.getId() < p2.getId()) return true;
+    return false;
+  };
+}
+
+//----------------------------------------------------------------------------
+
 vector<ValidityPeriod> PlayerMngr::getValidityPeriodsForPlayer(const Player& p) const
 {
   return getObjectsByColumnValue<ValidityPeriod>(*validityTab, VA_PLAYER_REF, p.getId());
+}
+
+//----------------------------------------------------------------------------
+
+upLocalTimestamp PlayerMngr::getEarliestActivationDateForPlayer(const Player& p) const
+{
+  WhereClause w;
+  w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addNotNullCol(VA_PERIOD_START);
+  w.setOrderColumn_Asc(VA_PERIOD_START);
+  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(*validityTab, w);
+  if (valPer == nullptr) return nullptr;
+
+  return valPer->getPeriodStart();
+}
+
+//----------------------------------------------------------------------------
+
+upLocalTimestamp PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p) const
+{
+  // is there a validity period item with end == NULL?
+  WhereClause w;
+  w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addNotNullCol(VA_PERIOD_START);
+  w.addNullCol(VA_PERIOD_END);
+  int cnt = validityTab->getMatchCountForWhereClause(w);
+  if (cnt != 0) return nullptr;
+
+  // no "open" validity period. Se we have to search for the latest end date
+  w.clear();
+  w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addNotNullCol(VA_PERIOD_START);
+  w.addNotNullCol(VA_PERIOD_END);
+  w.setOrderColumn_Desc(VA_PERIOD_END);
+  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(*validityTab, w);
+  if (valPer == nullptr) return nullptr;   // this shouldn't happen, but anyway...
+
+  return valPer->getPeriodEnd();
+}
+
+//----------------------------------------------------------------------------
+
+PlayerList PlayerMngr::getAllPlayers() const
+{
+  return getAllObjects<Player>(*playerTab);
 }
 
 //----------------------------------------------------------------------------

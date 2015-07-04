@@ -26,11 +26,18 @@ namespace RankingApp {
     upPlayer getPlayerByName(const string& firstName, const string& lastName) const;
     upPlayer getPlayerById(int id) const;
     vector<ValidityPeriod> getValidityPeriodsForPlayer(const Player& p) const;
+    upLocalTimestamp getEarliestActivationDateForPlayer(const Player& p) const;
+    upLocalTimestamp getLatestDeactivationDateForPlayer(const Player& p) const;
+    PlayerList getAllPlayers() const;
+
 
     // modify player validity / activity
     ERR enablePlayer(const Player& p, int startYear, int startMonth, int startDay) const;
     ERR disablePlayer(const Player& p, int endYear, int endMonth, int endDay) const;
     bool isPlayerEnabledOnSpecificDate(const Player& p, int year, int month, int day) const;
+
+    // comparison functions for std::sort
+    static std::function<bool (Player&, Player&)> getPlayerSortFunction_byLastName();
 
   private:
     RankingDb* db;

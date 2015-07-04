@@ -1,11 +1,12 @@
 #include <Wt/WText>
 
 #include "LazyContentLoader.h"
+#include "AllPlayersWidget.h"
 
 using namespace RankingApp;
 
-LazyContentLoader::LazyContentLoader(WContainerWidget *parent)
-  : WStackedWidget(parent)
+LazyContentLoader::LazyContentLoader(RankingSystem* rs, WContainerWidget *parent)
+  : WStackedWidget(parent), rankSys(rs)
 {
 
 }
@@ -14,36 +15,11 @@ LazyContentLoader::LazyContentLoader(WContainerWidget *parent)
 
 void LazyContentLoader::switchContent(LazyContentLoader::CONTENT_TYPE newContent)
 {
-  int* pIdx = nullptr;
-
-  switch (newContent)
+  // check if we've already accessed the content before
+  auto itContent = content2Index.find(newContent);
+  if (itContent != content2Index.end())
   {
-  case CONTENT_TYPE::SINGLES_RANKING:
-    pIdx = &singlesIdx;
-    break;
-
-  case CONTENT_TYPE::DOUBLES_RANKING:
-    pIdx = &doublesIdx;
-    break;
-
-  case CONTENT_TYPE::ERROR:
-    pIdx = &errorIdx;
-    break;
-
-  default:
-    pIdx = nullptr;
-  }
-
-  if (pIdx == nullptr)
-  {
-    return;
-  }
-
-  // if the content has been accessed before,
-  // switch over to the content
-  if (*pIdx >= 0)
-  {
-    setCurrentIndex(*pIdx);
+    setCurrentIndex((*itContent).second);
     return;
   }
 
@@ -60,6 +36,10 @@ void LazyContentLoader::switchContent(LazyContentLoader::CONTENT_TYPE newContent
     newWidget = new WText("Doppel");
     break;
 
+  case CONTENT_TYPE::ALL_PLAYERS:
+    newWidget = new AllPlayersWidget(rankSys);
+    break;
+
   case CONTENT_TYPE::ERROR:
     newWidget = new WText("Ups, da ist irgendein Fehler aufgetreten... :(");
     break;
@@ -71,7 +51,8 @@ void LazyContentLoader::switchContent(LazyContentLoader::CONTENT_TYPE newContent
   // add the newly created widget to the stack
   addWidget(newWidget);
   setCurrentWidget(newWidget);
-  *pIdx = currentIndex();
+  int newIdx = currentIndex();
+  content2Index[newContent] = newIdx;
 }
 
 //----------------------------------------------------------------------------

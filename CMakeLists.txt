@@ -37,6 +37,7 @@ set(WT_CONNECTOR "wthttp")
 set(APP_SOURCES
     app/RankingApp.cpp
     main.cpp
+    app/urls.h
 )
 
 #

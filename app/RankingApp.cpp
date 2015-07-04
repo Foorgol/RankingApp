@@ -5,6 +5,7 @@
 #include <Wt/WContainerWidget>
 #include <Wt/WNavigationBar>
 #include <Wt/WMenu>
+#include <Wt/WMenuItem>
 #include <Wt/WBootstrapTheme>
 #include <Wt/WAnchor>
 #include <Wt/WEnvironment>
@@ -12,6 +13,7 @@
 
 #include "RankingApp.h"
 #include "RankingSystem.h"
+#include "urls.h"
 
 RankingApp::RankingApp::RankingApp(const Wt::WEnvironment& env, const string& dbPath)
   :WApplication(env)
@@ -70,12 +72,27 @@ void RankingApp::RankingApp::createMenuBar()
   mainContainer = new WStackedWidget(c);
   mainContainer->setStyleClass("contents");
 
-  // the menu on the left
-  WMenu* leftMenu = new WMenu(mainContainer, c);
+  // a helper function for adding a text item linked to
+  // an internal URL to a menu
+  auto addLinkItem = [](WMenu* m, const string& label, const string& link) {
+    WMenuItem* mi = new WMenuItem(label);
+    mi->setLink(Wt::WLink(Wt::WLink::InternalPath, link));
+    m->addItem(mi);
+  };
+
+  // create the menu on the left
+  WMenu* leftMenu = new WMenu();
   navBar->addMenu(leftMenu);
-  leftMenu->setInternalPathEnabled("/basePath");
-  leftMenu->addItem("Einzel", new WText("Einzel-RL"));
-  leftMenu->addItem("Doppel", new WText("Doppel-RL"));
+  leftMenu->setInternalPathEnabled(BASE_URL);
+  addLinkItem(leftMenu, "Einzel", SINGLES_URL);
+  addLinkItem(leftMenu, "Doppel", DOUBLES_URL);
+
+  // create a sub-menu for various info-elements
+  WMenu* infoMenu = new WMenu(mainContainer, c);
+  addLinkItem(infoMenu, "Alle Spieler", ALL_PLAYERS_URL);
+
+  // add the info menu to the left menu
+  leftMenu->addMenu("Infos", infoMenu);
 
   c->addWidget(mainContainer);
 

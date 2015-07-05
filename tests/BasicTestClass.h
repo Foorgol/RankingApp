@@ -38,6 +38,8 @@ protected:
   unique_ptr<RankingApp::RankingSystem> getEmptyRankingSys();
   unique_ptr<RankingApp::RankingDb> getDirectDatabaseHandle();
 
+  unique_ptr<RankingApp::RankingSystem> getScenario1();
+
 private:
   string tcName;
 };

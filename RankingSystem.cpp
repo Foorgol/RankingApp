@@ -37,6 +37,13 @@ PlayerMngr RankingSystem::getPlayerMngr() const
 
 //----------------------------------------------------------------------------
 
+MatchMngr RankingSystem::getMatchMngr() const
+{
+  return MatchMngr{db.get()};
+}
+
+//----------------------------------------------------------------------------
+
 RankingSystem::RankingSystem(upRankingDb _db)
 {
   // this checked should never trigger, because we only call

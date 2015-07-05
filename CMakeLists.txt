@@ -1,8 +1,8 @@
 #
 # Configure what to build
 #
-set(BUILD_WEB_APP 1)   # the web application
-set(BUILD_TESTS 0)     # unit tests
+set(BUILD_WEB_APP 0)   # the web application
+set(BUILD_TESTS 1)     # unit tests
 set(BUILD_IMPORTER 0)  # an importer for the old database content
 
 #
@@ -63,6 +63,9 @@ set(LIB_SOURCES
     Player.cpp
     ValidityPeriod.cpp
     ScoreQueue.cpp
+    Score.cpp
+    MatchMngr.cpp
+    Match.cpp
 )
 
 #
@@ -99,6 +102,7 @@ set(LIB_SOURCES_TST
     tests/tstPlayerMngr.cpp
     tests/tstValidityPeriod.cpp
     tests/tstScoreQueue.cpp
+    tests/tstMatchMngr.cpp
 )
 
 if (GTEST_FOUND AND Boost_FOUND AND BUILD_TESTS)

@@ -4,7 +4,11 @@
 #include "BasicTestClass.h"
 #include "Logger.h"
 
+#include "RankingSystem.h"
+#include "PlayerMngr.h"
+
 namespace bfs = boost::filesystem;
+using namespace RankingApp;
 
 constexpr char BasicTestFixture::DB_TEST_FILE_NAME[];
 
@@ -117,4 +121,47 @@ unique_ptr<RankingApp::RankingDb> BasicTestFixture::getDirectDatabaseHandle()
   }
 
   return SqliteDatabase::get<RankingApp::RankingDb>(dbFileName, false);
+}
+
+//----------------------------------------------------------------------------
+
+unique_ptr<RankingApp::RankingSystem> BasicTestFixture::getScenario1()
+{
+  upRankingSystem rs = getEmptyRankingSys();
+  PlayerMngr pm = rs->getPlayerMngr();
+
+  // player 1: enabled since 2000-03-01
+  ERR err;
+  auto pl = pm.createNewPlayer("f", "l1", &err);
+  assert(pl != nullptr);
+  assert(ERR::SUCCESS == err);
+  err = pm.enablePlayer(*pl, 2000, 3, 1);
+  assert(ERR::SUCCESS == err);
+
+  // player 2: enabled since 2000-03-01
+  pl = pm.createNewPlayer("f", "l2", &err);
+  assert(pl != nullptr);
+  assert(ERR::SUCCESS == err);
+  err = pm.enablePlayer(*pl, 2000, 3, 1);
+  assert(ERR::SUCCESS == err);
+
+  // player 3: enabled 2000-03-01 -- 2000-03-15
+  pl = pm.createNewPlayer("f", "l3", &err);
+  assert(pl != nullptr);
+  assert(ERR::SUCCESS == err);
+  err = pm.enablePlayer(*pl, 2000, 3, 1);
+  assert(ERR::SUCCESS == err);
+  err = pm.disablePlayer(*pl, 2000, 3, 15);
+  assert(ERR::SUCCESS == err);
+
+  // player 4: enabled 2000-03-01 -- 2000-03-15
+  pl = pm.createNewPlayer("f", "l4", &err);
+  assert(pl != nullptr);
+  assert(ERR::SUCCESS == err);
+  err = pm.enablePlayer(*pl, 2000, 3, 1);
+  assert(ERR::SUCCESS == err);
+  err = pm.disablePlayer(*pl, 2000, 3, 15);
+  assert(ERR::SUCCESS == err);
+
+  return rs;
 }

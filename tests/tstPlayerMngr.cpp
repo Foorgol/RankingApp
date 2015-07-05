@@ -175,10 +175,72 @@ TEST_F(BasicTestFixture, PlayerMngr_isPlayerEnabled)
   ASSERT_TRUE(pm.isPlayerEnabledOnSpecificDate(*pl, 2000, 5, 3));
   ASSERT_TRUE(pm.isPlayerEnabledOnSpecificDate(*pl, 2000, 5, 13));
   ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, 2000, 5, 14));
+
+  // test with ISO dates
+  ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-3-2"));
+  ASSERT_TRUE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-3-3"));
+  ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-03-04"));
+  ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-04-14"));
+  ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-5-02"));
+  ASSERT_TRUE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-5-3"));
+  ASSERT_TRUE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-5-13"));
+  ASSERT_FALSE(pm.isPlayerEnabledOnSpecificDate(*pl, "2000-5-14"));
 }
 
 //----------------------------------------------------------------------------
 
+TEST_F(BasicTestFixture, PlayerMngr_getEarliestActivation)
+{
+  upRankingSystem rs = getEmptyRankingSys();
+  upRankingDb db = getDirectDatabaseHandle();
+  PlayerMngr pm = rs->getPlayerMngr();
+
+  // create a dummy player
+  auto pl = pm.createNewPlayer("f", "l");
+  ASSERT_TRUE(pl != nullptr);
+
+  // check with an empty validity table
+  ASSERT_TRUE(pm.getEarliestActivationDateForPlayer(*pl) == nullptr);
+  ASSERT_TRUE(pm.getLatestDeactivationDateForPlayer(*pl) == nullptr);
+
+  // create a first, open interval
+  ERR e = pm.enablePlayer(*pl, 2000, 03, 03);
+  ASSERT_EQ(ERR::SUCCESS, e);
+
+  upLocalTimestamp t = pm.getEarliestActivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-03-03", t->getISODate());
+  ASSERT_TRUE(pm.getLatestDeactivationDateForPlayer(*pl) == nullptr);
+
+  // close the first interval
+  e = pm.disablePlayer(*pl, 2000, 03, 13);
+  ASSERT_EQ(ERR::SUCCESS, e);
+  t = pm.getEarliestActivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-03-03", t->getISODate());
+  t = pm.getLatestDeactivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-03-13", t->getISODate());
+
+  // create a second interval
+  e = pm.enablePlayer(*pl, 2000, 05, 03);
+  ASSERT_EQ(ERR::SUCCESS, e);
+
+  t = pm.getEarliestActivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-03-03", t->getISODate());
+  ASSERT_TRUE(pm.getLatestDeactivationDateForPlayer(*pl) == nullptr);
+
+  // close the second interval
+  e = pm.disablePlayer(*pl, 2000, 05, 15);
+  ASSERT_EQ(ERR::SUCCESS, e);
+  t = pm.getEarliestActivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-03-03", t->getISODate());
+  t = pm.getLatestDeactivationDateForPlayer(*pl);
+  ASSERT_TRUE(t != nullptr);
+  ASSERT_EQ("2000-05-15", t->getISODate());
+}
 
 //----------------------------------------------------------------------------
 

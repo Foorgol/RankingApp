@@ -172,6 +172,18 @@ bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int mo
 
 //----------------------------------------------------------------------------
 
+bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const string& isoDate) const
+{
+  StringList _isoDate = ConvenienceFuncs::splitString(isoDate, '-');
+  int year = stoi(_isoDate.at(0));
+  int month = stoi(_isoDate.at(1));
+  int day = stoi(_isoDate.at(2));
+
+  return isPlayerEnabledOnSpecificDate(p, year, month, day);
+}
+
+//----------------------------------------------------------------------------
+
 std::function<bool (Player&, Player&)> PlayerMngr::getPlayerSortFunction_byLastName()
 {
   return [](Player& p1, Player& p2) {

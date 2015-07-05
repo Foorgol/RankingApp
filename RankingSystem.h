@@ -7,6 +7,7 @@
 #include "RankingDb.h"
 #include "RankingErrCodes.h"
 #include "PlayerMngr.h"
+#include "MatchMngr.h"
 
 using namespace SqliteOverlay;
 
@@ -20,6 +21,7 @@ namespace RankingApp {
     static bool isValidFilename(const string& fname);
 
     PlayerMngr getPlayerMngr() const;
+    MatchMngr getMatchMngr() const;
 
   protected:
     upRankingDb db;

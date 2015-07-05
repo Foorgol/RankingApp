@@ -7,6 +7,12 @@
 void RankingApp::RankingDb::populateTables()
 {
   StringList col;
+  auto addStandardCol = [&col](const char* colName, const string& colType) {
+    col.push_back(string(colName) + " " + colType);
+  };
+  auto addIntCol = [&addStandardCol](const char* colName) {
+    addStandardCol(colName, "INTEGER");
+  };
 
   string defaultNameColDef = " VARCHAR(" + to_string(MAX_NAME_LEN) + ")";
 
@@ -18,10 +24,33 @@ void RankingApp::RankingDb::populateTables()
 
   // the validity table
   col.push_back(genForeignKeyClause(VA_PLAYER_REF, TAB_PLAYER));
-  col.push_back(string(VA_PERIOD_START) + " INTEGER");
-  col.push_back(string(VA_PERIOD_END) + " INTEGER");
+  addIntCol(VA_PERIOD_START);
+  addIntCol(VA_PERIOD_END);
   tableCreationHelper(TAB_VALIDITY, col);
   col.clear();
+
+  // the table of matches
+  col.push_back(genForeignKeyClause(MA_WINNER1_REF, TAB_PLAYER));
+  col.push_back(genForeignKeyClause(MA_WINNER2_REF, TAB_PLAYER));
+  col.push_back(genForeignKeyClause(MA_LOSER1_REF, TAB_PLAYER));
+  col.push_back(genForeignKeyClause(MA_LOSER2_REF, TAB_PLAYER));
+  addStandardCol(MA_RESULT, "VARCHAR(40)");
+  addIntCol(MA_TIMESTAMP);
+  addIntCol(MA_STATE);
+  addIntCol(MA_MATCH_STORED_TIMESTAMP);
+  tableCreationHelper(TAB_MATCH, col);
+  col.clear();
+
+  // the score table
+  col.push_back(genForeignKeyClause(SC_PLAYER_REF, TAB_PLAYER));
+  addIntCol(SC_SCORE);
+  addIntCol(SC_TIMESTAMP);
+  addIntCol(SC_TYPE);
+  col.push_back(genForeignKeyClause(SC_MATCH_REF, TAB_MATCH));
+  addIntCol(SC_SCORE_TARGET);
+  tableCreationHelper(TAB_SCORE, col);
+  col.clear();
+
 }
 
 //----------------------------------------------------------------------------

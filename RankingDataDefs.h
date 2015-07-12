@@ -57,4 +57,18 @@
 #define RA_RANKING_CLASS_DOUBLES 2
 
 
+
+
+
+enum class RANKING_CLASS
+{
+  SINGLES,
+  DOUBLES
+};
+
+
+#define SCORE_QUEUE_DEPTH 5
+#define MAX_RANK_VALUE 120
+#define RANK_VALUE_STEP 2
+
 #endif  /* RANKINGDATADEFS_H */

@@ -17,6 +17,8 @@ namespace RankingApp {
     virtual void populateTables();
     virtual void populateViews();
 
+    void dropAndCreateRankingTab();
+
     RankingDb() : SqliteDatabase() {}
     RankingDb(string sqliteFilename, bool createNew) : SqliteDatabase(sqliteFilename, createNew) {}
 

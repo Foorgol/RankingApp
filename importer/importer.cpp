@@ -322,9 +322,9 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   }
 
   // step 3: sort all score events by time
-  //sort(scoreList.begin(), scoreList.end(), [](_Score a, _Score b) {
-  //  return a.timestamp < b.timestamp;
-  //});
+  sort(scoreList.begin(), scoreList.end(), [](_Score a, _Score b) {
+    return a.timestamp < b.timestamp;
+  });
 
   // add all entries to the new score events table
   DbTab* dstTab = dstDb->getTab(TAB_SCORE);
@@ -435,6 +435,9 @@ int doImport(const string& srcDbName, const string& dstDbName)
   {
     return result;
   }
+
+  // recalc the ranking
+  rs->recalcRankings();
 
   return 0;
 }

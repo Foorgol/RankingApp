@@ -29,6 +29,7 @@ namespace RankingApp {
     upLocalTimestamp getEarliestActivationDateForPlayer(const Player& p) const;
     upLocalTimestamp getLatestDeactivationDateForPlayer(const Player& p) const;
     PlayerList getAllPlayers() const;
+    PlayerList getActivePlayersOnGivenDate(const string& isoDate) const;
 
 
     // modify player validity / activity

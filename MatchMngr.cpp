@@ -4,6 +4,7 @@
 #include "ConvenienceFuncs.h"
 #include "RankingDataDefs.h"
 #include "PlayerMngr.h"
+#include "RankingSystem.h"
 
 using namespace RankingApp;
 
@@ -83,6 +84,45 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
 upMatch MatchMngr::getMatchById(int id) const
 {
   return getSingleObjectByColumnValue<Match>(*matchTab, "id", id);
+}
+
+//----------------------------------------------------------------------------
+
+upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass) const
+{
+  string sql = ("SELECT id FROM ") + string(TAB_MATCH) + " WHERE (";
+  if (rankClass == RANKING_CLASS::DOUBLES)
+  {
+    sql += string(MA_WINNER1_REF) + "= @player_id OR ";
+    sql += string(MA_WINNER2_REF) + "= @player_id OR ";
+    sql += string(MA_LOSER1_REF) + "= @player_id OR ";
+    sql += string(MA_LOSER2_REF) + "= @player_id ) ";
+  }
+  if (rankClass == RANKING_CLASS::SINGLES)
+  {
+    sql += string(MA_WINNER1_REF) + "= @player_id OR ";
+    sql += string(MA_LOSER1_REF) + "= @player_id ) AND ";
+    sql += string(MA_WINNER2_REF) + " IS NULL AND ";
+    sql += string(MA_LOSER2_REF) + " IS NULL ";
+  }
+  sql += "AND " + string(MA_STATE) + "= @stat ";
+  sql += "ORDER BY " + string(MA_TIMESTAMP) + " DESC";
+
+  upSqlStatement stmt = db->prepStatement(sql);
+  stmt->bindInt(1, p.getId());
+  stmt->bindInt(2, MA_STATE_CONFIRMED);
+
+  // execute the statement and check for a result
+  db->execContentQuery(stmt);
+  if (stmt->hasData())
+  {
+    int matchId;
+    stmt->getInt(0, &matchId);
+    return getMatchById(matchId);
+  }
+
+  // no match found
+  return nullptr;
 }
 
 //----------------------------------------------------------------------------

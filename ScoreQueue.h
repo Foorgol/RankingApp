@@ -1,10 +1,11 @@
-#ifndef PLAYER_H
-#define PLAYER_H
+#ifndef SCOREQUEUE_H
+#define SCOREQUEUE_H
 
 #include <memory>
 #include <queue>
 #include <string>
 #include "ConvenienceFuncs.h"
+#include "RankingDataDefs.h"
 
 using namespace std;
 
@@ -13,7 +14,7 @@ namespace RankingApp {
   class ScoreQueue
   {
   public:
-    ScoreQueue(int _queueSize);
+    ScoreQueue(int _queueSize=SCORE_QUEUE_DEPTH);
     ScoreQueue(int _queueSize, int initialScore);
     virtual ~ScoreQueue(){}
 
@@ -21,14 +22,16 @@ namespace RankingApp {
     void pushScore(int score);
 
     string toString() const;
+    int getSum() const;
 
   private:
     queue<int> scoreQueue;
     size_t queueSize;
+    int curSum;
   };
 
   typedef unique_ptr<ScoreQueue> upScoreQueue;
 
 }
 
-#endif  /* PLAYER_H */
+#endif  /* SCOREQUEUE_H */

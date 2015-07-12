@@ -52,13 +52,9 @@ void RankingApp::RankingDb::populateTables()
   col.clear();
 
   // the ranking
-  col.push_back(genForeignKeyClause(RA_PLAYER_REF, TAB_PLAYER));
-  addIntCol(RA_RANKING_CLASS);
-  addIntCol(RA_RANK);
-  addIntCol(RA_VALUE);
-  addStandardCol(RA_SCORE_QUEUE, "VARCHAR(40)");
-  tableCreationHelper(TAB_RANKING, col);
-  col.clear();
+  // use a dedicated function for this, because this table
+  // is frequently drop and re-created during operation
+  dropAndCreateRankingTab();
 
 }
 
@@ -67,6 +63,32 @@ void RankingApp::RankingDb::populateTables()
 void RankingApp::RankingDb::populateViews()
 {
 
+}
+
+//----------------------------------------------------------------------------
+
+void RankingApp::RankingDb::dropAndCreateRankingTab()
+{
+  // drop the table if it exists
+  string sql = "DROP TABLE IF EXISTS " + string(TAB_RANKING);
+  execNonQuery(sql);
+
+  // create an empty table
+  StringList col;
+  auto addStandardCol = [&col](const char* colName, const string& colType) {
+    col.push_back(string(colName) + " " + colType);
+  };
+  auto addIntCol = [&addStandardCol](const char* colName) {
+    addStandardCol(colName, "INTEGER");
+  };
+
+  col.push_back(genForeignKeyClause(RA_PLAYER_REF, TAB_PLAYER));
+  addIntCol(RA_RANKING_CLASS);
+  addIntCol(RA_RANK);
+  addIntCol(RA_VALUE);
+  addStandardCol(RA_SCORE_QUEUE, "VARCHAR(40)");
+  tableCreationHelper(TAB_RANKING, col);
+  col.clear();
 }
 //----------------------------------------------------------------------------
 

@@ -258,6 +258,22 @@ PlayerList PlayerMngr::getAllPlayers() const
 
 //----------------------------------------------------------------------------
 
+PlayerList PlayerMngr::getActivePlayersOnGivenDate(const string& isoDate) const
+{
+  PlayerList result;
+  for (Player p : getAllPlayers())
+  {
+    if (isPlayerEnabledOnSpecificDate(p, isoDate))
+    {
+      result.push_back(p);
+    }
+  }
+
+  return result;
+}
+
+//----------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------
 

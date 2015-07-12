@@ -27,6 +27,8 @@ ScoreQueue::ScoreQueue(int _queueSize, int initialScore)
   {
     scoreQueue.push(initialScore);
   }
+
+  curSum = queueSize * initialScore;
 }
 
 //----------------------------------------------------------------------------
@@ -98,7 +100,11 @@ void ScoreQueue::pushScore(int score)
   //
   // so whenever we pushed something using this method,
   // we need to pop the oldest entry immediately afterwards
+  int oldestScore = scoreQueue.front();
   scoreQueue.pop();
+
+  // update the internal score sum
+  curSum = curSum - oldestScore + score;
 }
 
 //----------------------------------------------------------------------------
@@ -121,6 +127,13 @@ string ScoreQueue::toString() const
   }
 
   return result;
+}
+
+//----------------------------------------------------------------------------
+
+int ScoreQueue::getSum() const
+{
+  return curSum;
 }
 
 

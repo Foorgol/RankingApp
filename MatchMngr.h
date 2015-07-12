@@ -10,6 +10,7 @@
 #include "Player.h"
 #include "Match.h"
 #include "Score.h"
+#include "RankingDataDefs.h"
 
 using namespace SqliteOverlay;
 
@@ -25,6 +26,7 @@ namespace RankingApp {
 
     // getters
     upMatch getMatchById(int id) const;
+    upMatch getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass) const;
 
 
     // comparison functions for std::sort

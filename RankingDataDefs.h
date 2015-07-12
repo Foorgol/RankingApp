@@ -36,8 +36,25 @@
 #define SC_MATCH_REF "MatchRef"
 #define SC_SCORE_TARGET "ScoreTarget"   // Singles or doubles
 
+#define SC_TYPE_MATCH 1
+#define SC_TYPE_LAZYNESS 2
+#define SC_TYPE_INITIAL 3
+#define SC_TYPE_IUM 4
+#define SC_TYPE_OTHER 5
+
 #define SC_SCORE_TARGET_SINGLES 1
 #define SC_SCORE_TARGET_DOUBLES 2
+
+// the ranking itself
+#define TAB_RANKING "Ranking"
+#define RA_PLAYER_REF "PlayerRef"
+#define RA_RANKING_CLASS "RankingClass"   // singles or doubles
+#define RA_RANK "Rank"
+#define RA_VALUE "Value"
+#define RA_SCORE_QUEUE "ScoreQueue"
+
+#define RA_RANKING_CLASS_SINGLES 1
+#define RA_RANKING_CLASS_DOUBLES 2
 
 
 #endif  /* RANKINGDATADEFS_H */

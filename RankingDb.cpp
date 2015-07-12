@@ -51,6 +51,15 @@ void RankingApp::RankingDb::populateTables()
   tableCreationHelper(TAB_SCORE, col);
   col.clear();
 
+  // the ranking
+  col.push_back(genForeignKeyClause(RA_PLAYER_REF, TAB_PLAYER));
+  addIntCol(RA_RANKING_CLASS);
+  addIntCol(RA_RANK);
+  addIntCol(RA_VALUE);
+  addStandardCol(RA_SCORE_QUEUE, "VARCHAR(40)");
+  tableCreationHelper(TAB_RANKING, col);
+  col.clear();
+
 }
 
 //----------------------------------------------------------------------------

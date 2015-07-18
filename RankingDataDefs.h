@@ -23,6 +23,7 @@
 #define MA_TIMESTAMP "Timestamp"
 #define MA_STATE "State"  // "Staged" or "Confirmed"
 #define MA_MATCH_STORED_TIMESTAMP "MatchStoredAt"
+#define MA_MATCH_CONFIRMED_TIMESTAMP "MatchConfirmedAt"
 
 #define MA_STATE_STAGED 1
 #define MA_STATE_CONFIRMED 2
@@ -66,9 +67,16 @@ enum class RANKING_CLASS
   DOUBLES
 };
 
+enum class MATCH_STATE
+{
+  STAGED,
+  CONFIRMED,
+};
+
 
 #define SCORE_QUEUE_DEPTH 5
 #define MAX_RANK_VALUE 120
 #define RANK_VALUE_STEP 2
+#define MAX_ACTIVE_PLAYER_COUNT (MAX_RANK_VALUE / RANK_VALUE_STEP)
 
 #endif  /* RANKINGDATADEFS_H */

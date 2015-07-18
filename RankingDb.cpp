@@ -38,6 +38,7 @@ void RankingApp::RankingDb::populateTables()
   addIntCol(MA_TIMESTAMP);
   addIntCol(MA_STATE);
   addIntCol(MA_MATCH_STORED_TIMESTAMP);
+  addIntCol(MA_MATCH_CONFIRMED_TIMESTAMP);
   tableCreationHelper(TAB_MATCH, col);
   col.clear();
 

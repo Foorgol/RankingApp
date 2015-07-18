@@ -9,12 +9,16 @@
 using namespace RankingApp;
 
 
-MatchMngr::MatchMngr(RankingDb* _db)
-  :GenericObjectManager(_db), db(_db)
+MatchMngr::MatchMngr(RankingDb* _db, RankingSystem* _rs)
+  :GenericObjectManager(_db), db(_db), rs(_rs)
 {
   if (_db == nullptr)
   {
     throw std::invalid_argument("Received nullptr as database handle");
+  }
+  if (_rs == nullptr)
+  {
+    throw std::invalid_argument("Received nullptr as ranking system handle");
   }
 
   matchTab = db->getTab(TAB_MATCH);
@@ -39,7 +43,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
   }
 
   // all players must have been enabled when the match took place
-  PlayerMngr pm{db};
+  PlayerMngr pm{db, rs};
   string isoDate = timestamp.getISODate();
   if (!(pm.isPlayerEnabledOnSpecificDate(player1, isoDate)))
   {
@@ -81,6 +85,29 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
 
 //----------------------------------------------------------------------------
 
+ERR MatchMngr::confirmMatch(const Match& ma) const
+{
+  // make sure the match is "staged"
+  if (ma.getState() != MATCH_STATE::STAGED)
+  {
+    return ERR::MATCH_NOT_STAGED;
+  }
+
+  // update the match entry
+  int newState = Match::MatchStateToInt(MATCH_STATE::CONFIRMED);
+  ColumnValueClause cvc;
+  cvc.addIntCol(MA_STATE, newState);
+  LocalTimestamp now;
+  cvc.addDateTimeCol(MA_MATCH_CONFIRMED_TIMESTAMP, &now);
+  ma.row.update(cvc);
+
+  // IMPORTANT: an (incremental) update of the ranking
+  // has to be triggered elsewhere!
+  return ERR::SUCCESS;
+}
+
+//----------------------------------------------------------------------------
+
 upMatch MatchMngr::getMatchById(int id) const
 {
   return getSingleObjectByColumnValue<Match>(*matchTab, "id", id);
@@ -88,7 +115,7 @@ upMatch MatchMngr::getMatchById(int id) const
 
 //----------------------------------------------------------------------------
 
-upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass) const
+upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass, bool confirmedMatchesOnly) const
 {
   string sql = ("SELECT id FROM ") + string(TAB_MATCH) + " WHERE (";
   if (rankClass == RANKING_CLASS::DOUBLES)
@@ -105,12 +132,18 @@ upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS&
     sql += string(MA_WINNER2_REF) + " IS NULL AND ";
     sql += string(MA_LOSER2_REF) + " IS NULL ";
   }
-  sql += "AND " + string(MA_STATE) + "= @stat ";
+  if (confirmedMatchesOnly)
+  {
+    sql += "AND " + string(MA_STATE) + "= @stat ";
+  }
   sql += "ORDER BY " + string(MA_TIMESTAMP) + " DESC";
 
   upSqlStatement stmt = db->prepStatement(sql);
   stmt->bindInt(1, p.getId());
-  stmt->bindInt(2, MA_STATE_CONFIRMED);
+  if (confirmedMatchesOnly)
+  {
+    stmt->bindInt(2, MA_STATE_CONFIRMED);
+  }
 
   // execute the statement and check for a result
   db->execContentQuery(stmt);

@@ -84,8 +84,19 @@ int importValidityDates(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb,
     int m = stoi(chunks[1]);
     int d = stoi(chunks[2]);
 
+    // re-write wrong entry dates of some players to make database
+    // consistent again
+    if (id == 65)
+    {
+      --d;
+    }
+    if (id == 76)
+    {
+      d = d - 12;
+    }
+
     ERR err;
-    err = pm.enablePlayer(*pl, y, m, d);
+    err = pm.enablePlayer(*pl, y, m, d, true);
     if (err != ERR::SUCCESS)
     {
       return 200;
@@ -349,6 +360,82 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
 //----------------------------------------------------------------------------
 
+int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRankingSystem& rs)
+{
+  // create a new column for the updated score
+  string sql = "ALTER TABLE " + string(TAB_SCORE) + " ADD COLUMN OldScore INTEGER";
+  dstDb->execNonQuery(sql);
+  sql = "ALTER TABLE " + string(TAB_SCORE) + " ADD COLUMN DeltaScore INTEGER";
+  dstDb->execNonQuery(sql);
+
+  // the way the importer is written it is guaranteed that the score timestamps
+  // for match events equals the match time and that scores are stored in
+  // chronological order
+
+  // go through the score list and recalculate the winner / loser score for each match
+  WhereClause w;
+  w.addIntCol(SC_TYPE, SC_TYPE_MATCH);
+  w.setOrderColumn_Asc(SC_TIMESTAMP);
+  DbTab* scoreTab = dstDb->getTab(TAB_SCORE);
+  DbTab* matchTab = dstDb->getTab(TAB_MATCH);
+  DbTab* rankTab = dstDb->getTab(TAB_RANKING);
+  DbTab::CachingRowIterator it = scoreTab->getRowsByWhereClause(w);
+  dstDb->setLogLevel(2); // suppress output to speed things up
+  rs->setLogLevel(2);
+  while (!(it.isEnd()))
+  {
+    TabRow scoreRow = *it;
+
+    // get the score time (which equals the match time)
+    LocalTimestamp scTime = scoreRow.getLocalTime(SC_TIMESTAMP);
+    LocalTimestamp scTime_Minus1{scTime.getRawTime() - 1};
+
+    // calculate the ranking up to one second before the timestamp
+    rs->recalcRankings(scTime_Minus1);
+
+    // get winner and loser
+    int matchId = scoreRow.getInt(SC_MATCH_REF);
+    TabRow matchRow = matchTab->operator [](matchId);
+    int winnerId = matchRow.getInt(MA_WINNER1_REF);
+    int loserId = matchRow.getInt(MA_LOSER1_REF);
+
+    // get the score for winner and loser
+    int player1Value = rankTab->getSingleRowByColumnValue(RA_PLAYER_REF, winnerId).getInt(RA_VALUE);
+    int player2Value = rankTab->getSingleRowByColumnValue(RA_PLAYER_REF, loserId).getInt(RA_VALUE);
+    int winnerScore = (player1Value > player2Value) ? player1Value : player2Value;
+    int loserScore = (player1Value > player2Value) ? player2Value : player1Value;
+
+    // update the entries in the score table
+    int oldScore = scoreRow.getInt(SC_SCORE);
+    scoreRow.update("OldScore", oldScore);
+    if (scoreRow.getInt(SC_PLAYER_REF) == winnerId)
+    {
+      scoreRow.update(SC_SCORE, winnerScore);
+      scoreRow.update("DeltaScore", winnerScore - oldScore);
+    } else {
+      scoreRow.update(SC_SCORE, loserScore);
+      scoreRow.update("DeltaScore", loserScore - oldScore);
+    }
+    ++it;   // second score entry for this match
+    scoreRow = *it;
+    oldScore = scoreRow.getInt(SC_SCORE);
+    scoreRow.update("OldScore", oldScore);
+    if (scoreRow.getInt(SC_PLAYER_REF) == winnerId)
+    {
+      scoreRow.update(SC_SCORE, winnerScore);
+      scoreRow.update("DeltaScore", winnerScore - oldScore);
+    } else {
+      scoreRow.update(SC_SCORE, loserScore);
+      scoreRow.update("DeltaScore", loserScore - oldScore);
+    }
+
+    // done
+    ++it; // next match
+
+    cerr << int(it.getPercentage() * 100);
+  }
+  return 0;
+}
 
 //----------------------------------------------------------------------------
 
@@ -436,8 +523,20 @@ int doImport(const string& srcDbName, const string& dstDbName)
     return result;
   }
 
+  // rebuild / re-calculate the match scores to fix
+  // improper chronological data entries from the past
+  result = rebuildMatchScores(srcDb, dstDb, rs);
+  if (result != 0)
+  {
+    return result;
+  }
+
   // recalc the ranking
   rs->recalcRankings();
+  if (result != 0)
+  {
+    return result;
+  }
 
   return 0;
 }

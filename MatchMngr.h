@@ -16,17 +16,20 @@ using namespace SqliteOverlay;
 
 namespace RankingApp {
 
+  class RankingSystem;
+
   class MatchMngr : public GenericObjectManager
   {
   public:
-    MatchMngr(RankingDb* _db);
+    MatchMngr(RankingDb* _db, RankingSystem* _rs);
 
     // create
     upMatch stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const LocalTimestamp& timestamp, ERR* err=nullptr) const;
+    ERR confirmMatch(const Match& ma) const;
 
     // getters
     upMatch getMatchById(int id) const;
-    upMatch getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass) const;
+    upMatch getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass, bool confirmedMatchesOnly=true) const;
 
 
     // comparison functions for std::sort
@@ -34,6 +37,7 @@ namespace RankingApp {
 
   private:
     RankingDb* db;
+    RankingSystem* rs;
     DbTab* matchTab;
 
   };

@@ -1,18 +1,25 @@
 
 #include "PlayerMngr.h"
+#include "MatchMngr.h"
+#include "Match.h"
 #include "RankingDb.h"
 #include "ConvenienceFuncs.h"
 #include "RankingDataDefs.h"
+#include "RankingSystem.h"
 
 using namespace RankingApp;
 
 
-PlayerMngr::PlayerMngr(RankingDb* _db)
-  :GenericObjectManager(_db), db(_db)
+PlayerMngr::PlayerMngr(RankingDb* _db, RankingSystem* _rs)
+  :GenericObjectManager(_db), db(_db), rs(_rs)
 {
   if (_db == nullptr)
   {
     throw std::invalid_argument("Received nullptr as database handle");
+  }
+  if (_rs == nullptr)
+  {
+    throw std::invalid_argument("Received nullptr as ranking system handle");
   }
 
   playerTab = db->getTab(TAB_PLAYER);
@@ -77,7 +84,7 @@ upPlayer PlayerMngr::getPlayerById(int id) const
 
 //----------------------------------------------------------------------------
 
-ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int startDay) const
+ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int startDay, bool skipInitialScore) const
 {
   // check 1: make sure that all existing time periods are closed
   // before we open a new one
@@ -105,11 +112,62 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
     }
   }
 
+  // check 3: make sure we don't have too many active players
+  PlayerList activePlayers = getActivePlayersOnGivenDate(startTime.getISODate());
+  if (activePlayers.size() >= MAX_ACTIVE_PLAYER_COUNT)
+  {
+    return ERR::TOO_MANY_PLAYERS;
+  }
+
+  // determine the initial score
+  int iniScoreSingles = -1;
+  int iniScoreDoubles = -1;
+  if (!skipInitialScore)
+  {
+    iniScoreSingles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::SINGLES, startYear, startMonth, startDay);
+    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::DOUBLES, startYear, startMonth, startDay);
+    if ((iniScoreSingles < 0) || (iniScoreDoubles < 0))
+    {
+      return ERR::COULD_NOT_DETERMINE_INITIAL_SCORE;
+    }
+  }
+
   // everything is okay and we can setup the new period
   ColumnValueClause cvc;
   cvc.addIntCol(VA_PLAYER_REF, p.getId());
   cvc.addDateTimeCol(VA_PERIOD_START, &startTime);
   validityTab->insertRow(cvc);
+
+  // push the initial score to the database
+  if (!skipInitialScore)
+  {
+    time_t rawStartTime = startTime.getRawTime();
+    DbTab* scoreTab = db->getTab(TAB_SCORE);
+    for (int i=0; i < SCORE_QUEUE_DEPTH; ++i)
+    {
+      // initial score for singles
+      cvc.clear();
+      cvc.addIntCol(SC_PLAYER_REF, p.getId());
+      cvc.addIntCol(SC_SCORE, iniScoreSingles);
+      cvc.addIntCol(SC_TIMESTAMP, rawStartTime);
+      cvc.addIntCol(SC_TYPE, SC_TYPE_INITIAL);
+      cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_SINGLES);
+      scoreTab->insertRow(cvc);
+
+      // initial score for doubles
+      cvc.clear();
+      cvc.addIntCol(SC_PLAYER_REF, p.getId());
+      cvc.addIntCol(SC_SCORE, iniScoreDoubles);
+      cvc.addIntCol(SC_TIMESTAMP, rawStartTime);
+      cvc.addIntCol(SC_TYPE, SC_TYPE_INITIAL);
+      cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_DOUBLES);
+      scoreTab->insertRow(cvc);
+
+      // increase timestamp for the next entry
+      ++rawStartTime;
+    }
+  }
+
 
   return ERR::SUCCESS;
 }
@@ -142,6 +200,27 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
   if (vp->determineRelationToPeriod(endTime) == ValidityPeriod::IS_BEFORE_PERIOD)
   {
     return ERR::END_DATE_TOO_EARLY;
+  }
+
+  // step 3: make sure there aren't any matches for this player after the end date
+  MatchMngr mm = MatchMngr(db, rs);
+  upMatch latestMatchSingles = mm.getLatestMatchForPlayer(p, RANKING_CLASS::SINGLES, false);
+  upMatch latestMatchDoubles = mm.getLatestMatchForPlayer(p, RANKING_CLASS::DOUBLES, false);
+  if (latestMatchSingles != nullptr)
+  {
+    LocalTimestamp maDate = latestMatchSingles->getMatchTime();
+    if (maDate > endTime)
+    {
+      return ERR::END_DATE_TOO_EARLY;
+    }
+  }
+  if (latestMatchDoubles != nullptr)
+  {
+    LocalTimestamp maDate = latestMatchDoubles->getMatchTime();
+    if (maDate > endTime)
+    {
+      return ERR::END_DATE_TOO_EARLY;
+    }
   }
 
   // everything is okay, we can disable the player

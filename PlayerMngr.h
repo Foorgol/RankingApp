@@ -14,10 +14,12 @@ using namespace SqliteOverlay;
 
 namespace RankingApp {
 
+  class RankingSystem;
+
   class PlayerMngr : public GenericObjectManager
   {
   public:
-    PlayerMngr(RankingDb* _db);
+    PlayerMngr(RankingDb* _db, RankingSystem* _rs);
 
     // create
     upPlayer createNewPlayer(const string& firstName, const string& lastName, ERR* err=nullptr) const;
@@ -33,7 +35,7 @@ namespace RankingApp {
 
 
     // modify player validity / activity
-    ERR enablePlayer(const Player& p, int startYear, int startMonth, int startDay) const;
+    ERR enablePlayer(const Player& p, int startYear, int startMonth, int startDay, bool skipInitialScore=false) const;
     ERR disablePlayer(const Player& p, int endYear, int endMonth, int endDay) const;
     bool isPlayerEnabledOnSpecificDate(const Player& p, int year, int month, int day) const;
     bool isPlayerEnabledOnSpecificDate(const Player& p, const string& isoDate) const;
@@ -43,6 +45,7 @@ namespace RankingApp {
 
   private:
     RankingDb* db;
+    RankingSystem* rs;
     DbTab* playerTab;
     DbTab* validityTab;
 

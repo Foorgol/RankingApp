@@ -35,18 +35,26 @@ namespace RankingApp {
     static unique_ptr<RankingSystem> createEmpty(const string& fname, ERR* err);
     static bool isValidFilename(const string& fname);
 
-    PlayerMngr getPlayerMngr() const;
-    MatchMngr getMatchMngr() const;
+    PlayerMngr getPlayerMngr();
+    MatchMngr getMatchMngr();
 
-    void recalcRankings(int maxYear=-1, int maxMonth=-1, int maxDay=-1) const;
+    void recalcRankings(int maxYear=-1, int maxMonth=-1, int maxDay=-1);
+    void recalcRankings(const LocalTimestamp& maxTimeIncluded);
     int RankingClassToInt(RANKING_CLASS rc) const;
+
+    ERR confirmMatchAndUpdateRanking(const Match& ma);
+    PlainRankingEntryList getSortedRanking(RANKING_CLASS rankClass) const;
+
+    int getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int startYear, int startMonth, int startDay);
+
+    void setLogLevel(int newLvl);
 
   protected:
     upRankingDb db;
     RankingSystem(upRankingDb _db);
     static unique_ptr<RankingSystem> doInit(const string& fname, bool doCreateNew, ERR* err);
-    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, int maxYear=-1, int maxMonth=-1, int maxDay=-1) const;
-    void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass) const;
+    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, const LocalTimestamp& maxTimeIncluded);
+    void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass);
     void assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const;
   };
 

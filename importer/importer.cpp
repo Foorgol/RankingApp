@@ -159,9 +159,8 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
       sameDayMatchCount = 0;
     }
 
-    // arbitrarily chosen time for old matches: 12:00:00,
-    // incremented by one second for each match on the same day.
-    // No handling of overflows here (read: not more than 60 matches on the same day)
+    // try to convert the isoDate into a time object. This is only
+    // for checking that the contents of "isoDate" are valid
     upLocalTimestamp oldMatchTime = LocalTimestamp::fromISODate(isoDate, 12, 0, sameDayMatchCount);
     if (oldMatchTime == nullptr)
     {
@@ -178,7 +177,7 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
     cvc.addIntCol(MA_LOSER1_REF, loserId);
     cvc.addIntCol(MA_RESULT, isThreeGames ? 1 : 0);
     cvc.addIntCol(MA_STATE, MA_STATE_CONFIRMED);
-    cvc.addDateTimeCol(MA_TIMESTAMP, oldMatchTime.get());
+    cvc.addStringCol(MA_ISODATE, isoDate);
     cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, oldMatchTime.get());
     int newId = dstTab->insertRow(cvc);
     if (newId < 1)
@@ -206,7 +205,8 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   {
   public:
     int reason;
-    int timestamp;
+    string isoDate;
+    int seqInDay;
     int score;
     int playerRef;
     int matchRef;
@@ -218,8 +218,6 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   // get player entry dates in chronological order
   DbTab* srcPlayerTab = srcDb->getTab("ranking_player");
   upSqlStatement srcRows = srcDb->execContentQuery("SELECT id FROM ranking_player ORDER BY entryDate ASC, id ASC");
-  string prevEntryDate = "42";
-  time_t scoreTimestamp = -1;
   while (srcRows->hasData())
   {
     bool isOk;
@@ -234,11 +232,6 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
     // reset the timestamp if we have a new day
     string isoDate = r["entryDate"];
-    if (isoDate != prevEntryDate)
-    {
-      upLocalTimestamp t = LocalTimestamp::fromISODate(isoDate, 2, 0, 0);
-      scoreTimestamp = t->getRawTime();
-    }
 
     // split the initial score into five separate score events
     StringList iniScore = ConvenienceFuncs::splitString(r["initialScore"], ',');
@@ -252,22 +245,20 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       _Score _sc;
       _sc.reason = SC_TYPE_INITIAL;
       _sc.score = sc;
-      _sc.timestamp = scoreTimestamp;
+      _sc.isoDate = isoDate;
       _sc.playerRef = playerId;
 
       scoreList.push_back(_sc);
-      ++scoreTimestamp;
     }
 
-    prevEntryDate = isoDate;
     srcRows->step();
   }
 
   // step 2: import old score events
   DbTab* srcScoreTab = srcDb->getTab("ranking_scoring");
   srcRows = srcDb->execContentQuery("SELECT id FROM ranking_scoring ORDER BY scoringDate ASC, reason ASC");
-  prevEntryDate = "42";
-  scoreTimestamp = -1;
+  string prevEntryDate = "42";
+  int seqInDay = 0;
   while (srcRows->hasData())
   {
     bool isOk;
@@ -280,12 +271,11 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
     TabRow r = srcScoreTab->operator [](scoreId);
 
-    // reset the timestamp if we have a new day
+    // reset the sequence counter if we have a new day
     string isoDate = r["scoringDate"];
     if (isoDate != prevEntryDate)
     {
-      upLocalTimestamp t = LocalTimestamp::fromISODate(isoDate, 22, 0, 0);
-      scoreTimestamp = t->getRawTime();
+      seqInDay = 0;
     }
 
     // process entry, based on its type
@@ -293,26 +283,16 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     _Score sc;
     sc.playerRef = r.getInt("player_id");
     sc.score = r.getInt("score");
+    sc.isoDate = isoDate;
     if (reason == 1)   // Match
     {
       sc.reason = SC_TYPE_MATCH;
       sc.matchRef = matchId_old2new[r.getInt("match_id")];
-
-      // for matches, use the (unique) match timestamp as the
-      // score timestamp
-      int maTime;
-      isOk = dstDb->execScalarQueryInt("SELECT Timestamp FROM Match WHERE id=" + to_string(sc.matchRef), &maTime);
-      if (!isOk)
-      {
-        return 404;
-      }
-      sc.timestamp = maTime;
+      sc.seqInDay = seqInDay;
+      ++seqInDay;
     }
     if (reason > 1)   // penalty points for lazy players
     {
-      sc.timestamp = scoreTimestamp;
-      ++scoreTimestamp;
-
       switch (reason)
       {
       case 2:
@@ -332,9 +312,30 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     srcRows->step();
   }
 
-  // step 3: sort all score events by time
+  // step 3: sort all score events by time and priority
   sort(scoreList.begin(), scoreList.end(), [](_Score a, _Score b) {
-    return a.timestamp < b.timestamp;
+    // first criterion: the score day
+    if (a.isoDate < b.isoDate) return true;
+    if (a.isoDate > b.isoDate) return false;
+
+    // if scores are on the same day, initial scores come first,
+    // then matches, then penalty scores
+    if (a.reason < b.reason) return true;
+    if (a.reason > b.reason) return false;
+
+    // if we make it to this point, we have the same date
+    // and the same scoring type
+
+    // for matches, the sequence within a day is mandatory
+    // and MUST be different for two matches on the same day
+    if (a.reason == SC_TYPE_MATCH)
+    {
+      return (a.seqInDay < b.seqInDay);
+    }
+
+    // in all other (non-match) cases, the sequence doesn't count
+    // so we arbitrarily return false
+    return false;
   });
 
   // add all entries to the new score events table
@@ -344,12 +345,13 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     ColumnValueClause cvc;
     cvc.addIntCol(SC_PLAYER_REF, sc.playerRef);
     cvc.addIntCol(SC_SCORE, sc.score);
-    cvc.addIntCol(SC_TIMESTAMP, sc.timestamp);
+    cvc.addStringCol(SC_ISODATE, sc.isoDate);
     cvc.addIntCol(SC_TYPE, sc.reason);
     cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_SINGLES);
     if (sc.reason == SC_TYPE_MATCH)
     {
       cvc.addIntCol(SC_MATCH_REF, sc.matchRef);
+      cvc.addIntCol(SC_SEQ_IN_DAY, sc.seqInDay);
     }
 
     dstTab->insertRow(cvc);
@@ -368,14 +370,14 @@ int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, 
   sql = "ALTER TABLE " + string(TAB_SCORE) + " ADD COLUMN DeltaScore INTEGER";
   dstDb->execNonQuery(sql);
 
-  // the way the importer is written it is guaranteed that the score timestamps
-  // for match events equals the match time and that scores are stored in
-  // chronological order
+  // the way the importer is written it is guaranteed that
+  // scores are stored in chronological order
 
   // go through the score list and recalculate the winner / loser score for each match
   WhereClause w;
   w.addIntCol(SC_TYPE, SC_TYPE_MATCH);
-  w.setOrderColumn_Asc(SC_TIMESTAMP);
+  w.setOrderColumn_Asc(SC_ISODATE);
+  w.setOrderColumn_Asc(SC_SEQ_IN_DAY);
   DbTab* scoreTab = dstDb->getTab(TAB_SCORE);
   DbTab* matchTab = dstDb->getTab(TAB_MATCH);
   DbTab* rankTab = dstDb->getTab(TAB_RANKING);
@@ -386,12 +388,14 @@ int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, 
   {
     TabRow scoreRow = *it;
 
-    // get the score time (which equals the match time)
-    LocalTimestamp scTime = scoreRow.getLocalTime(SC_TIMESTAMP);
-    LocalTimestamp scTime_Minus1{scTime.getRawTime() - 1};
+    // get the score date (which equals the match date)
+    // and the sequence of this match (or score event) within
+    // this day
+    string isoDate = scoreRow[SC_ISODATE];
+    int seqInDay = scoreRow.getInt(SC_SEQ_IN_DAY);
 
-    // calculate the ranking up to one second before the timestamp
-    rs->recalcRankings(scTime_Minus1);
+    // calculate the ranking up to but not including the current match
+    rs->recalcRankings(isoDate, seqInDay);
 
     // get winner and loser
     int matchId = scoreRow.getInt(SC_MATCH_REF);

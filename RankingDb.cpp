@@ -35,7 +35,7 @@ void RankingApp::RankingDb::populateTables()
   col.push_back(genForeignKeyClause(MA_LOSER1_REF, TAB_PLAYER));
   col.push_back(genForeignKeyClause(MA_LOSER2_REF, TAB_PLAYER));
   addStandardCol(MA_RESULT, "VARCHAR(40)");
-  addIntCol(MA_TIMESTAMP);
+  addStandardCol(MA_ISODATE, "VARCHAR(10)");
   addIntCol(MA_STATE);
   addIntCol(MA_MATCH_STORED_TIMESTAMP);
   addIntCol(MA_MATCH_CONFIRMED_TIMESTAMP);
@@ -45,7 +45,8 @@ void RankingApp::RankingDb::populateTables()
   // the score table
   col.push_back(genForeignKeyClause(SC_PLAYER_REF, TAB_PLAYER));
   addIntCol(SC_SCORE);
-  addIntCol(SC_TIMESTAMP);
+  addStandardCol(SC_ISODATE, "VARCHAR(10)");
+  addIntCol(SC_SEQ_IN_DAY);
   addIntCol(SC_TYPE);
   col.push_back(genForeignKeyClause(SC_MATCH_REF, TAB_MATCH));
   addIntCol(SC_SCORE_TARGET);

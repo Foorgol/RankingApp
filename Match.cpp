@@ -67,7 +67,12 @@ bool Match::isDoubles() const
 
 LocalTimestamp Match::getMatchTime() const
 {
-  return row.getLocalTime(MA_TIMESTAMP);
+  //
+  // THIS FUNCTION NEEDS TO BE KILLED OR RE-IMPLEMENTED!!
+  //
+  return LocalTimestamp();
+
+  //return row.getLocalTime(MA_TIMESTAMP);
 }
 
 //----------------------------------------------------------------------------

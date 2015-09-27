@@ -20,7 +20,7 @@
 #define MA_LOSER1_REF "Loser1Ref"
 #define MA_LOSER2_REF "Loser2Ref"
 #define MA_RESULT "Result"
-#define MA_TIMESTAMP "Timestamp"
+#define MA_ISODATE "Date"
 #define MA_STATE "State"  // "Staged" or "Confirmed"
 #define MA_MATCH_STORED_TIMESTAMP "MatchStoredAt"
 #define MA_MATCH_CONFIRMED_TIMESTAMP "MatchConfirmedAt"
@@ -32,16 +32,21 @@
 #define TAB_SCORE "ScoreEvent"
 #define SC_PLAYER_REF "PlayerRef"
 #define SC_SCORE "Score"
-#define SC_TIMESTAMP "Timestamp"
+#define SC_ISODATE "Date"
+#define SC_SEQ_IN_DAY "SequenceInDay"
 #define SC_TYPE "ScoringType"
 #define SC_MATCH_REF "MatchRef"
 #define SC_SCORE_TARGET "ScoreTarget"   // Singles or doubles
 
-#define SC_TYPE_MATCH 1
-#define SC_TYPE_LAZYNESS 2
-#define SC_TYPE_INITIAL 3
-#define SC_TYPE_IUM 4
-#define SC_TYPE_OTHER 5
+// score event types
+// the types are numbered in order of precendence:
+// in case of identical timestamps for a score event,
+// initial scores go first, then matches, then penalty scores
+#define SC_TYPE_INITIAL 1
+#define SC_TYPE_MATCH 2
+#define SC_TYPE_IUM 3
+#define SC_TYPE_OTHER 4
+#define SC_TYPE_LAZYNESS 5
 
 #define SC_SCORE_TARGET_SINGLES 1
 #define SC_SCORE_TARGET_DOUBLES 2
@@ -54,8 +59,8 @@
 #define RA_VALUE "Value"
 #define RA_SCORE_QUEUE "ScoreQueue"
 
-#define RA_RANKING_CLASS_SINGLES 1
-#define RA_RANKING_CLASS_DOUBLES 2
+#define RA_RANKING_CLASS_SINGLES SC_SCORE_TARGET_SINGLES
+#define RA_RANKING_CLASS_DOUBLES SC_SCORE_TARGET_DOUBLES
 
 
 

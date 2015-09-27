@@ -149,7 +149,7 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
       cvc.clear();
       cvc.addIntCol(SC_PLAYER_REF, p.getId());
       cvc.addIntCol(SC_SCORE, iniScoreSingles);
-      cvc.addIntCol(SC_TIMESTAMP, rawStartTime);
+      cvc.addStringCol(SC_ISODATE, startTime.getISODate());
       cvc.addIntCol(SC_TYPE, SC_TYPE_INITIAL);
       cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_SINGLES);
       scoreTab->insertRow(cvc);
@@ -158,7 +158,7 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
       cvc.clear();
       cvc.addIntCol(SC_PLAYER_REF, p.getId());
       cvc.addIntCol(SC_SCORE, iniScoreDoubles);
-      cvc.addIntCol(SC_TIMESTAMP, rawStartTime);
+      cvc.addStringCol(SC_ISODATE, startTime.getISODate());
       cvc.addIntCol(SC_TYPE, SC_TYPE_INITIAL);
       cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_DOUBLES);
       scoreTab->insertRow(cvc);

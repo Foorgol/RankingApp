@@ -68,7 +68,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
     score.swapPlayers();  // winner score is always the first in the game score
   }
   cvc.addStringCol(MA_RESULT, score.toString());
-  cvc.addDateTimeCol(MA_TIMESTAMP, &timestamp);
+  cvc.addStringCol(MA_ISODATE, timestamp.getISODate());
   cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
   LocalTimestamp now;
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);
@@ -117,6 +117,13 @@ upMatch MatchMngr::getMatchById(int id) const
 
 upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass, bool confirmedMatchesOnly) const
 {
+  //
+  // THIS FUNCTION NEEDS TO BE RE-IMPLEMENTED
+  //
+
+  return nullptr;
+
+  /*
   string sql = ("SELECT id FROM ") + string(TAB_MATCH) + " WHERE (";
   if (rankClass == RANKING_CLASS::DOUBLES)
   {
@@ -136,7 +143,12 @@ upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS&
   {
     sql += "AND " + string(MA_STATE) + "= @stat ";
   }
-  sql += "ORDER BY " + string(MA_TIMESTAMP) + " DESC";
+  sql += "ORDER BY " + string(MA_ISODATE) + " DESC";
+  sql += ", " + string(ma);
+  
+  WhereClause w;
+  w.addIntCol();
+      
 
   upSqlStatement stmt = db->prepStatement(sql);
   stmt->bindInt(1, p.getId());
@@ -156,6 +168,7 @@ upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS&
 
   // no match found
   return nullptr;
+  */
 }
 
 //----------------------------------------------------------------------------

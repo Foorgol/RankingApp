@@ -31,6 +31,9 @@ namespace RankingApp {
   class RankingSystem
   {
   public:
+    static constexpr int SEQ_NUM__NO_MATCHES = -1;
+    static constexpr int SEQ_NUM__ALL_MATCHES__NO_PENALTY = 99999;
+    static constexpr int SEQ_NUM__ALL_MATCHES__ALL_PENALTY = 99998;
     static unique_ptr<RankingSystem> get(const string& fname, ERR* err);
     static unique_ptr<RankingSystem> createEmpty(const string& fname, ERR* err);
     static bool isValidFilename(const string& fname);
@@ -38,8 +41,9 @@ namespace RankingApp {
     PlayerMngr getPlayerMngr();
     MatchMngr getMatchMngr();
 
-    void recalcRankings(int maxYear=-1, int maxMonth=-1, int maxDay=-1);
-    void recalcRankings(const LocalTimestamp& maxTimeIncluded);
+    void recalcRankings(int maxYear=-1, int maxMonth=-1, int maxDay=-1, int maxSeqNumIncluded=SEQ_NUM__ALL_MATCHES__ALL_PENALTY);
+    void recalcRankings(const string& maxIsoDateIncluded, int maxSeqNumIncluded);
+    void storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted);
     int RankingClassToInt(RANKING_CLASS rc) const;
 
     ERR confirmMatchAndUpdateRanking(const Match& ma);
@@ -49,13 +53,16 @@ namespace RankingApp {
 
     void setLogLevel(int newLvl);
 
+    LocalTimestamp getLatestScoreEventTimestamp() const;
+
   protected:
     upRankingDb db;
     RankingSystem(upRankingDb _db);
     static unique_ptr<RankingSystem> doInit(const string& fname, bool doCreateNew, ERR* err);
-    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, const LocalTimestamp& maxTimeIncluded);
+    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, const string& maxIsoDateIncluded, int maxSeqNumIncluded);
     void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass);
     void assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const;
+    void rewriteMatchScores(const string& maxIsoDateIncluded, int maxSeqNumIncluded);
   };
 
   typedef unique_ptr<RankingSystem> upRankingSystem;

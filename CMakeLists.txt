@@ -71,7 +71,7 @@ set(LIB_SOURCES
 #
 # Main Targets
 #
-include_directories("." ${SQLITE_OVERLAY_INCLUDE_DIR})
+include_directories("." ${SQLITE_OVERLAY_INCLUDE_DIR} "./gsl")
 link_directories("." ${SQLITE_OVERLAY_LIB_DIR})
 add_library(${PROJECT_NAME}_Logic STATIC ${LIB_SOURCES})
 set_property(TARGET ${PROJECT_NAME}_Logic PROPERTY CXX_STANDARD 14)

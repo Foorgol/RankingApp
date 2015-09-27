@@ -179,6 +179,7 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
     cvc.addIntCol(MA_STATE, MA_STATE_CONFIRMED);
     cvc.addStringCol(MA_ISODATE, isoDate);
     cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, oldMatchTime.get());
+    cvc.addDateTimeCol(MA_MATCH_CONFIRMED_TIMESTAMP, oldMatchTime.get());
     int newId = dstTab->insertRow(cvc);
     if (newId < 1)
     {
@@ -230,7 +231,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
     TabRow r = srcPlayerTab->operator [](playerId);
 
-    // reset the timestamp if we have a new day
+    // get the entry date for that player
     string isoDate = r["entryDate"];
 
     // split the initial score into five separate score events
@@ -259,6 +260,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   srcRows = srcDb->execContentQuery("SELECT id FROM ranking_scoring ORDER BY scoringDate ASC, reason ASC");
   string prevEntryDate = "42";
   int seqInDay = 0;
+  map<int,int> match2SeqNum;
   while (srcRows->hasData())
   {
     bool isOk;
@@ -276,6 +278,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     if (isoDate != prevEntryDate)
     {
       seqInDay = 0;
+      match2SeqNum.clear();
     }
 
     // process entry, based on its type
@@ -284,13 +287,25 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     sc.playerRef = r.getInt("player_id");
     sc.score = r.getInt("score");
     sc.isoDate = isoDate;
+
     if (reason == 1)   // Match
     {
       sc.reason = SC_TYPE_MATCH;
       sc.matchRef = matchId_old2new[r.getInt("match_id")];
-      sc.seqInDay = seqInDay;
-      ++seqInDay;
+
+      // lookup the sequence number for this match, if it
+      // has already been assigned. If it has not been
+      // assigned, assign a new one
+      if (match2SeqNum.find(sc.matchRef) != match2SeqNum.end())
+      {
+        sc.seqInDay = match2SeqNum[sc.matchRef];
+      } else {
+        sc.seqInDay = seqInDay;
+        match2SeqNum[sc.matchRef] = sc.seqInDay;
+        ++seqInDay;
+      }
     }
+
     if (reason > 1)   // penalty points for lazy players
     {
       switch (reason)
@@ -526,6 +541,7 @@ int doImport(const string& srcDbName, const string& dstDbName)
   {
     return result;
   }
+  return 0;
 
   // rebuild / re-calculate the match scores to fix
   // improper chronological data entries from the past

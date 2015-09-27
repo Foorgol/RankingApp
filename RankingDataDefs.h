@@ -33,7 +33,7 @@
 #define SC_PLAYER_REF "PlayerRef"
 #define SC_SCORE "Score"
 #define SC_ISODATE "Date"
-#define SC_SEQ_IN_DAY "SequenceInDay"
+#define SC_SEQ_NUM "SequenceNumber"
 #define SC_TYPE "ScoringType"
 #define SC_MATCH_REF "MatchRef"
 #define SC_SCORE_TARGET "ScoreTarget"   // Singles or doubles

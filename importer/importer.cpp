@@ -207,17 +207,20 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   public:
     int reason;
     string isoDate;
-    int seqInDay;
+    int seqNum;
     int score;
     int playerRef;
     int matchRef;
   };
   vector<_Score> scoreList;
 
+  int seqNum = 0;
+
   // step 1: create score events for "initial scores"
   //
   // get player entry dates in chronological order
   DbTab* srcPlayerTab = srcDb->getTab("ranking_player");
+  PlayerMngr pm = rs->getPlayerMngr();
   upSqlStatement srcRows = srcDb->execContentQuery("SELECT id FROM ranking_player ORDER BY entryDate ASC, id ASC");
   while (srcRows->hasData())
   {
@@ -232,7 +235,14 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     TabRow r = srcPlayerTab->operator [](playerId);
 
     // get the entry date for that player
-    string isoDate = r["entryDate"];
+    //
+    // use the entry in the target database, not the
+    // entry in the source database, because when importing
+    // the players, I had to re-write some entry dates because
+    // the old database is inconsistent
+    auto pl = pm.getPlayerById(playerId);
+    auto earliestActivation = pm.getEarliestActivationDateForPlayer(*pl);
+    string isoDate = earliestActivation->getISODate();
 
     // split the initial score into five separate score events
     StringList iniScore = ConvenienceFuncs::splitString(r["initialScore"], ',');
@@ -248,10 +258,12 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       _sc.score = sc;
       _sc.isoDate = isoDate;
       _sc.playerRef = playerId;
+      _sc.seqNum = seqNum;   // use the same sequence number for all five score events
 
       scoreList.push_back(_sc);
     }
 
+    ++seqNum;
     srcRows->step();
   }
 
@@ -259,7 +271,6 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   DbTab* srcScoreTab = srcDb->getTab("ranking_scoring");
   srcRows = srcDb->execContentQuery("SELECT id FROM ranking_scoring ORDER BY scoringDate ASC, reason ASC");
   string prevEntryDate = "42";
-  int seqInDay = 0;
   map<int,int> match2SeqNum;
   while (srcRows->hasData())
   {
@@ -277,7 +288,6 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     string isoDate = r["scoringDate"];
     if (isoDate != prevEntryDate)
     {
-      seqInDay = 0;
       match2SeqNum.clear();
     }
 
@@ -298,11 +308,11 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       // assigned, assign a new one
       if (match2SeqNum.find(sc.matchRef) != match2SeqNum.end())
       {
-        sc.seqInDay = match2SeqNum[sc.matchRef];
+        sc.seqNum = match2SeqNum[sc.matchRef];
       } else {
-        sc.seqInDay = seqInDay;
-        match2SeqNum[sc.matchRef] = sc.seqInDay;
-        ++seqInDay;
+        sc.seqNum = seqNum;
+        match2SeqNum[sc.matchRef] = seqNum;
+        ++seqNum;
       }
     }
 
@@ -319,6 +329,9 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       default:
         sc.reason = SC_TYPE_OTHER;
       }
+
+      sc.seqNum = seqNum;
+      ++seqNum;
     }
 
     scoreList.push_back(sc);
@@ -329,6 +342,8 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
   // step 3: sort all score events by time and priority
   sort(scoreList.begin(), scoreList.end(), [](_Score a, _Score b) {
+    // return (a.seqNum < b.seqNum);
+
     // first criterion: the score day
     if (a.isoDate < b.isoDate) return true;
     if (a.isoDate > b.isoDate) return false;
@@ -340,23 +355,18 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
     // if we make it to this point, we have the same date
     // and the same scoring type
-
-    // for matches, the sequence within a day is mandatory
-    // and MUST be different for two matches on the same day
-    if (a.reason == SC_TYPE_MATCH)
-    {
-      return (a.seqInDay < b.seqInDay);
-    }
-
-    // in all other (non-match) cases, the sequence doesn't count
-    // so we arbitrarily return false
-    return false;
+    // ==> we go by the previously defined sequence number
+    return (a.seqNum < b.seqNum);
   });
 
   // add all entries to the new score events table
+  // and re-write the sequence number
+  seqNum = -1;
+  int prevOldSeqNum = -1;
   DbTab* dstTab = dstDb->getTab(TAB_SCORE);
   for (_Score sc : scoreList)
   {
+    // copy the contents from the data structure to the CVC
     ColumnValueClause cvc;
     cvc.addIntCol(SC_PLAYER_REF, sc.playerRef);
     cvc.addIntCol(SC_SCORE, sc.score);
@@ -366,8 +376,18 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     if (sc.reason == SC_TYPE_MATCH)
     {
       cvc.addIntCol(SC_MATCH_REF, sc.matchRef);
-      cvc.addIntCol(SC_SEQ_IN_DAY, sc.seqInDay);
     }
+
+    // re-write the sequence number and make sure that
+    // two or more entries with the same consecutive
+    // (old) sequence number get the same new sequence number
+    int oldSeqNum = sc.seqNum;
+    if (prevOldSeqNum != oldSeqNum)
+    {
+      ++seqNum;
+    }
+    cvc.addIntCol(SC_SEQ_NUM, seqNum);
+    prevOldSeqNum = oldSeqNum;
 
     dstTab->insertRow(cvc);
   }
@@ -379,6 +399,9 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
 int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRankingSystem& rs)
 {
+  dstDb->setLogLevel(2);
+  rs->setLogLevel(2);
+
   // create a new column for the updated score
   string sql = "ALTER TABLE " + string(TAB_SCORE) + " ADD COLUMN OldScore INTEGER";
   dstDb->execNonQuery(sql);
@@ -388,71 +411,82 @@ int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, 
   // the way the importer is written it is guaranteed that
   // scores are stored in chronological order
 
-  // go through the score list and recalculate the winner / loser score for each match
-  WhereClause w;
-  w.addIntCol(SC_TYPE, SC_TYPE_MATCH);
-  w.setOrderColumn_Asc(SC_ISODATE);
-  w.setOrderColumn_Asc(SC_SEQ_IN_DAY);
+  // go through the match list and recalculate the winner / loser score for each match
   DbTab* scoreTab = dstDb->getTab(TAB_SCORE);
   DbTab* matchTab = dstDb->getTab(TAB_MATCH);
-  DbTab* rankTab = dstDb->getTab(TAB_RANKING);
-  DbTab::CachingRowIterator it = scoreTab->getRowsByWhereClause(w);
-  dstDb->setLogLevel(2); // suppress output to speed things up
-  rs->setLogLevel(2);
+  DbTab::CachingRowIterator it = matchTab->getAllRows();
   while (!(it.isEnd()))
   {
-    TabRow scoreRow = *it;
+    TabRow matchRow = *it;
+    int matchId = matchRow.getId();
 
-    // get the score date (which equals the match date)
-    // and the sequence of this match (or score event) within
-    // this day
-    string isoDate = scoreRow[SC_ISODATE];
-    int seqInDay = scoreRow.getInt(SC_SEQ_IN_DAY);
+    // find the associated score event, if any
+    if (scoreTab->getMatchCountForColumnValue(SC_MATCH_REF, matchId) == 0)
+    {
+      ++it;
+      continue;   // this is an old match without score entry, back from the old times with the Excel sheet
+    }
 
-    // calculate the ranking up to but not including the current match
-    rs->recalcRankings(isoDate, seqInDay);
+    // get the first score row (i.e., the winner)
+    TabRow scoreRow1 = scoreTab->getSingleRowByColumnValue(SC_MATCH_REF, matchId);
+
+    // the second score row (i.e., the loser) is one row after the first
+    TabRow scoreRow2 = scoreTab->operator [](scoreRow1.getId() + 1);
+
+    // verify that both rows refer to the same match
+    if (scoreRow1.getInt(SC_MATCH_REF) != scoreRow2.getInt(SC_MATCH_REF))
+    {
+      return 501;
+    }
+
+    // calculate the ranking for everything up to but not including
+    // the current match
+    int scoreSeqNum = scoreRow1.getInt(SC_SEQ_NUM);
+    PlainRankingEntryList rel = rs->recalcRanking(RANKING_CLASS::SINGLES, scoreSeqNum - 1);
 
     // get winner and loser
-    int matchId = scoreRow.getInt(SC_MATCH_REF);
-    TabRow matchRow = matchTab->operator [](matchId);
     int winnerId = matchRow.getInt(MA_WINNER1_REF);
     int loserId = matchRow.getInt(MA_LOSER1_REF);
 
     // get the score for winner and loser
-    int player1Value = rankTab->getSingleRowByColumnValue(RA_PLAYER_REF, winnerId).getInt(RA_VALUE);
-    int player2Value = rankTab->getSingleRowByColumnValue(RA_PLAYER_REF, loserId).getInt(RA_VALUE);
-    int winnerScore = (player1Value > player2Value) ? player1Value : player2Value;
-    int loserScore = (player1Value > player2Value) ? player2Value : player1Value;
+    PlainRankingEntry re1 = *(find_if(rel.cbegin(), rel.cend(), [winnerId](const PlainRankingEntry& re) {
+      return (re.playerRef == winnerId);
+    }));
+    PlainRankingEntry re2 = *(find_if(rel.cbegin(), rel.cend(), [loserId](const PlainRankingEntry& re) {
+      return (re.playerRef == loserId);
+    }));
+    int winnerScore = (re1.value > re2.value) ? re1.value : re2.value;
+    int loserScore = (re1.value > re2.value) ? re2.value : re1.value;
 
     // update the entries in the score table
-    int oldScore = scoreRow.getInt(SC_SCORE);
-    scoreRow.update("OldScore", oldScore);
-    if (scoreRow.getInt(SC_PLAYER_REF) == winnerId)
+    int oldScore = scoreRow1.getInt(SC_SCORE);
+    scoreRow1.update("OldScore", oldScore);
+    if (scoreRow1.getInt(SC_PLAYER_REF) == winnerId)
     {
-      scoreRow.update(SC_SCORE, winnerScore);
-      scoreRow.update("DeltaScore", winnerScore - oldScore);
+      scoreRow1.update(SC_SCORE, winnerScore);
+      scoreRow1.update("DeltaScore", winnerScore - oldScore);
     } else {
-      scoreRow.update(SC_SCORE, loserScore);
-      scoreRow.update("DeltaScore", loserScore - oldScore);
+      scoreRow1.update(SC_SCORE, loserScore);
+      scoreRow1.update("DeltaScore", loserScore - oldScore);
     }
-    ++it;   // second score entry for this match
-    scoreRow = *it;
-    oldScore = scoreRow.getInt(SC_SCORE);
-    scoreRow.update("OldScore", oldScore);
-    if (scoreRow.getInt(SC_PLAYER_REF) == winnerId)
+    oldScore = scoreRow2.getInt(SC_SCORE);
+    scoreRow2.update("OldScore", oldScore);
+    if (scoreRow2.getInt(SC_PLAYER_REF) == winnerId)
     {
-      scoreRow.update(SC_SCORE, winnerScore);
-      scoreRow.update("DeltaScore", winnerScore - oldScore);
+      scoreRow2.update(SC_SCORE, winnerScore);
+      scoreRow2.update("DeltaScore", winnerScore - oldScore);
     } else {
-      scoreRow.update(SC_SCORE, loserScore);
-      scoreRow.update("DeltaScore", loserScore - oldScore);
+      scoreRow2.update(SC_SCORE, loserScore);
+      scoreRow2.update("DeltaScore", loserScore - oldScore);
     }
 
-    // done
-    ++it; // next match
+    // next match
+    ++it;
 
     cerr << int(it.getPercentage() * 100);
   }
+
+
   return 0;
 }
 
@@ -541,7 +575,6 @@ int doImport(const string& srcDbName, const string& dstDbName)
   {
     return result;
   }
-  return 0;
 
   // rebuild / re-calculate the match scores to fix
   // improper chronological data entries from the past
@@ -551,8 +584,10 @@ int doImport(const string& srcDbName, const string& dstDbName)
     return result;
   }
 
+  return 0;
+
   // recalc the ranking
-  rs->recalcRankings();
+  //rs->recalcRankings();
   if (result != 0)
   {
     return result;

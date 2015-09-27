@@ -45,32 +45,11 @@ MatchMngr RankingSystem::getMatchMngr()
 
 //----------------------------------------------------------------------------
 
-void RankingSystem::recalcRankings(int maxYear, int maxMonth, int maxDay, int maxSeqNumIncluded)
-{
-  // if we don't have a valid date in maxYear, maxMonth, maxDay we calculate
-  // the ranking up to and including the latest entry. Otherwise, we only
-  // calc up to and including the given date
-  LocalTimestamp maxDate;
-  try
-  {
-    maxDate = LocalTimestamp(maxYear, maxMonth, maxDay, 23, 59, 59);
-  } catch (exception e) {
-    maxDate = LocalTimestamp();  // "now"
-    maxDate = *(LocalTimestamp::fromISODate(maxDate.getISODate(), 23, 59, 59));
-  }
-
-  string isoDate = maxDate.getISODate();
-
-  recalcRankings(isoDate, maxSeqNumIncluded);
-}
-
-//----------------------------------------------------------------------------
-
-void RankingSystem::recalcRankings(const string& maxIsoDateIncluded, int maxSeqNumIncluded)
+void RankingSystem::recalcRankings(int maxSeqNumIncluded)
 {
   // calculate the "sub-rankings"
-  PlainRankingEntryList singles = recalcRanking(RANKING_CLASS::SINGLES, maxIsoDateIncluded, maxSeqNumIncluded);
-  PlainRankingEntryList doubles = recalcRanking(RANKING_CLASS::DOUBLES, maxIsoDateIncluded, maxSeqNumIncluded);
+  PlainRankingEntryList singles = recalcRanking(RANKING_CLASS::SINGLES, maxSeqNumIncluded);
+  PlainRankingEntryList doubles = recalcRanking(RANKING_CLASS::DOUBLES, maxSeqNumIncluded);
 
   // write to the database
   storeRankingEntries(singles, doubles);
@@ -193,6 +172,13 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RANKING_CLASS rankClass) c
 
 int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int startYear, int startMonth, int startDay)
 {
+  //
+  // THIS FUNCTION NEEDS TO BE COMPLETELY RE-WRITTEN
+  //
+
+  return -1;
+
+  /*
   // we can only determine the score if we have no unconfirmed matches before or on the
   // expected start date
   LocalTimestamp startTime = LocalTimestamp(startYear, startMonth, startDay, 0, 0, 1);
@@ -234,6 +220,7 @@ int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int star
   // determine the initial value by subtracting one value step from
   // the worst value
   return (worstVal - RANK_VALUE_STEP);
+  */
 }
 
 void RankingSystem::setLogLevel(int newLvl)
@@ -311,10 +298,11 @@ unique_ptr<RankingSystem> RankingSystem::doInit(const string& fname, bool doCrea
 
 //----------------------------------------------------------------------------
 
-PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, const string& maxIsoDateIncluded, int maxSeqNumIncluded)
+PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int maxSeqNumIncluded)
 {
   // get a list of the active players
   PlayerMngr pm = getPlayerMngr();
+  string maxIsoDateIncluded = getIsoDateForScoreSeqNum(maxSeqNumIncluded);
   PlayerList activePlayers = pm.getActivePlayersOnGivenDate(maxIsoDateIncluded);
 
   // collect the scores for each active player in chronological order
@@ -326,11 +314,8 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, cons
 
     WhereClause where;
     where.addIntCol(SC_PLAYER_REF, p.getId());
-    where.addStringCol(SC_ISODATE, "<=", maxIsoDateIncluded);
     where.addIntCol(SC_SCORE_TARGET, RankingClassToInt(rankClass));
-    where.setOrderColumn_Asc(SC_ISODATE);   // order by date first...
-    where.setOrderColumn_Asc(SC_TYPE);        // ... then by type...
-    where.setOrderColumn_Asc(SC_SEQ_IN_DAY);  // ... and finally by sequence number (if set)
+    where.setOrderColumn_Asc(SC_SEQ_NUM);
     upSqlStatement allScores = db->execContentQuery(where.getSelectStmt(TAB_SCORE, false));
 
     while (allScores->hasData())
@@ -340,16 +325,10 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, cons
       TabRow r = scoreTab->operator [](id);
 
       // check for the max sequence number
-      int type = r.getInt(SC_TYPE);
-      string isoDate = r[SC_ISODATE];
-      if ((isoDate == maxIsoDateIncluded) && (maxSeqNumIncluded == SEQ_NUM__ALL_MATCHES__NO_PENALTY))
+      int thisSeqNum = r.getInt(SC_SEQ_NUM);
+      if (thisSeqNum > maxSeqNumIncluded)
       {
-        if (type > SC_TYPE_MATCH) continue;
-      }
-      if ((isoDate == maxIsoDateIncluded) && (type == SC_TYPE_MATCH))
-      {
-        int seqNum = r.getInt(SC_SEQ_IN_DAY);
-        if (seqNum > maxSeqNumIncluded) continue;
+        break;
       }
 
       queue.pushScore(r.getInt(SC_SCORE));
@@ -466,10 +445,10 @@ void RankingSystem::assignRanksAndValuesToSortedPlainRankingEntryListInPlace(Pla
 
 //----------------------------------------------------------------------------
 
-void RankingSystem::rewriteMatchScores(const string& maxIsoDateIncluded, int maxSeqNumIncluded)
+void RankingSystem::rewriteMatchScores(int maxSeqNumIncluded)
 {
   // recalculate the ranking up to one second before minTimeIncluded
-  recalcRankings(maxIsoDateIncluded, maxSeqNumIncluded);
+  recalcRankings(maxSeqNumIncluded);
 
   // reprocess all score events dated on maxIsoTimeIncluded and later than maxSeqNumIncluded; if the
   // score event is a match, recalculate the scores
@@ -493,6 +472,20 @@ void RankingSystem::rewriteMatchScores(const string& maxIsoDateIncluded, int max
 //    }
   }
 
+}
+
+//----------------------------------------------------------------------------
+
+string RankingSystem::getIsoDateForScoreSeqNum(int seqNum)
+{
+  DbTab* scoreTab = db->getTab(TAB_SCORE);
+  if (scoreTab->getMatchCountForColumnValue(SC_SEQ_NUM, seqNum) == 0)
+  {
+    return "";  // invalid sequence number
+  }
+
+  TabRow r = scoreTab->getSingleRowByColumnValue(SC_SEQ_NUM, seqNum);
+  return r[SC_ISODATE];
 }
 
 //----------------------------------------------------------------------------

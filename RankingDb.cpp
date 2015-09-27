@@ -46,7 +46,7 @@ void RankingApp::RankingDb::populateTables()
   col.push_back(genForeignKeyClause(SC_PLAYER_REF, TAB_PLAYER));
   addIntCol(SC_SCORE);
   addStandardCol(SC_ISODATE, "VARCHAR(10)");
-  addIntCol(SC_SEQ_IN_DAY);
+  addIntCol(SC_SEQ_NUM);
   addIntCol(SC_TYPE);
   col.push_back(genForeignKeyClause(SC_MATCH_REF, TAB_MATCH));
   addIntCol(SC_SCORE_TARGET);

@@ -41,8 +41,8 @@ namespace RankingApp {
     PlayerMngr getPlayerMngr();
     MatchMngr getMatchMngr();
 
-    void recalcRankings(int maxYear=-1, int maxMonth=-1, int maxDay=-1, int maxSeqNumIncluded=SEQ_NUM__ALL_MATCHES__ALL_PENALTY);
-    void recalcRankings(const string& maxIsoDateIncluded, int maxSeqNumIncluded);
+    void recalcRankings(int maxSeqNumIncluded);
+    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, int maxSeqNumIncluded);
     void storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted);
     int RankingClassToInt(RANKING_CLASS rc) const;
 
@@ -59,10 +59,10 @@ namespace RankingApp {
     upRankingDb db;
     RankingSystem(upRankingDb _db);
     static unique_ptr<RankingSystem> doInit(const string& fname, bool doCreateNew, ERR* err);
-    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, const string& maxIsoDateIncluded, int maxSeqNumIncluded);
     void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass);
     void assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const;
-    void rewriteMatchScores(const string& maxIsoDateIncluded, int maxSeqNumIncluded);
+    void rewriteMatchScores(int maxSeqNumIncluded);
+    string getIsoDateForScoreSeqNum(int seqNum);
   };
 
   typedef unique_ptr<RankingSystem> upRankingSystem;

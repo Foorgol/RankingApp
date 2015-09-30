@@ -31,9 +31,6 @@ namespace RankingApp {
   class RankingSystem
   {
   public:
-    static constexpr int SEQ_NUM__NO_MATCHES = -1;
-    static constexpr int SEQ_NUM__ALL_MATCHES__NO_PENALTY = 99999;
-    static constexpr int SEQ_NUM__ALL_MATCHES__ALL_PENALTY = 99998;
     static unique_ptr<RankingSystem> get(const string& fname, ERR* err);
     static unique_ptr<RankingSystem> createEmpty(const string& fname, ERR* err);
     static bool isValidFilename(const string& fname);
@@ -52,8 +49,6 @@ namespace RankingApp {
     int getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int startYear, int startMonth, int startDay);
 
     void setLogLevel(int newLvl);
-
-    LocalTimestamp getLatestScoreEventTimestamp() const;
 
   protected:
     upRankingDb db;

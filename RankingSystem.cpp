@@ -230,25 +230,6 @@ void RankingSystem::setLogLevel(int newLvl)
 
 //----------------------------------------------------------------------------
 
-LocalTimestamp RankingSystem::getLatestScoreEventTimestamp() const
-{
-//  WhereClause w;
-//  w.addIntCol("id", ">", 0);
-//  w.setOrderColumn_Desc(SC_TIMESTAMP);
-//  DbTab* scoreTab = db->getTab(TAB_SCORE);
-//  try
-//  {
-//    TabRow r = scoreTab->getSingleRowByWhereClause(w);
-//    return r.getLocalTime(SC_TIMESTAMP);
-//  } catch (exception e) {
-//  }
-
-  // empty scoring table
-  return LocalTimestamp(MIN_YEAR, 1, 1, 0, 0, 1);
-}
-
-//----------------------------------------------------------------------------
-
 RankingSystem::RankingSystem(upRankingDb _db)
 {
   // this checked should never trigger, because we only call

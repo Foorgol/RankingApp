@@ -26,7 +26,7 @@ MatchMngr::MatchMngr(RankingDb* _db, RankingSystem* _rs)
 
 //----------------------------------------------------------------------------
 
-upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const LocalTimestamp& timestamp, ERR* err) const
+upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const string& isoDate, ERR* err) const
 {
   // players may not be identical
   if (player1 == player2)
@@ -44,7 +44,6 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
 
   // all players must have been enabled when the match took place
   PlayerMngr pm{db, rs};
-  string isoDate = timestamp.getISODate();
   if (!(pm.isPlayerEnabledOnSpecificDate(player1, isoDate)))
   {
     ConvenienceFuncs::setErr(err, ERR::INACTIVE_PLAYERS_IN_MATCH);
@@ -68,7 +67,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
     score.swapPlayers();  // winner score is always the first in the game score
   }
   cvc.addStringCol(MA_RESULT, score.toString());
-  cvc.addStringCol(MA_ISODATE, timestamp.getISODate());
+  cvc.addStringCol(MA_ISODATE, isoDate);
   cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
   LocalTimestamp now;
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);

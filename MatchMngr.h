@@ -24,7 +24,7 @@ namespace RankingApp {
     MatchMngr(RankingDb* _db, RankingSystem* _rs);
 
     // create
-    upMatch stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const LocalTimestamp& timestamp, ERR* err=nullptr) const;
+    upMatch stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const string& isoDate, ERR* err=nullptr) const;
     ERR confirmMatch(const Match& ma) const;
 
     // getters

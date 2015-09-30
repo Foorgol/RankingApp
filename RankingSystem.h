@@ -41,7 +41,7 @@ namespace RankingApp {
     PlayerMngr getPlayerMngr();
     MatchMngr getMatchMngr();
 
-    void recalcRankings(int maxSeqNumIncluded);
+    void recalcRankings(int maxSeqNumIncluded=-1);
     PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, int maxSeqNumIncluded);
     void storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted);
     int RankingClassToInt(RANKING_CLASS rc) const;

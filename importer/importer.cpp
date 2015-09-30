@@ -584,14 +584,8 @@ int doImport(const string& srcDbName, const string& dstDbName)
     return result;
   }
 
-  return 0;
-
   // recalc the ranking
-  //rs->recalcRankings();
-  if (result != 0)
-  {
-    return result;
-  }
+  rs->recalcRankings();
 
   return 0;
 }

@@ -302,7 +302,13 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
 {
   // get a list of the active players
   PlayerMngr pm = getPlayerMngr();
-  string maxIsoDateIncluded = getIsoDateForScoreSeqNum(maxSeqNumIncluded);
+  string maxIsoDateIncluded;
+  if (maxSeqNumIncluded >= 0)
+  {
+    maxIsoDateIncluded = getIsoDateForScoreSeqNum(maxSeqNumIncluded);
+  } else {
+    maxIsoDateIncluded = LocalTimestamp().getISODate();  // today
+  }
   PlayerList activePlayers = pm.getActivePlayersOnGivenDate(maxIsoDateIncluded);
 
   // collect the scores for each active player in chronological order
@@ -315,7 +321,10 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
     WhereClause where;
     where.addIntCol(SC_PLAYER_REF, p.getId());
     where.addIntCol(SC_SCORE_TARGET, RankingClassToInt(rankClass));
-    where.addIntCol(SC_SEQ_NUM, "<=", maxSeqNumIncluded);
+    if (maxSeqNumIncluded >= 0)
+    {
+      where.addIntCol(SC_SEQ_NUM, "<=", maxSeqNumIncluded);
+    }
     where.setOrderColumn_Asc(SC_SEQ_NUM);
     DbTab::CachingRowIterator it = scoreTab->getRowsByWhereClause(where);
 

@@ -315,24 +315,14 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
     WhereClause where;
     where.addIntCol(SC_PLAYER_REF, p.getId());
     where.addIntCol(SC_SCORE_TARGET, RankingClassToInt(rankClass));
+    where.addIntCol(SC_SEQ_NUM, "<=", maxSeqNumIncluded);
     where.setOrderColumn_Asc(SC_SEQ_NUM);
-    upSqlStatement allScores = db->execContentQuery(where.getSelectStmt(TAB_SCORE, false));
+    DbTab::CachingRowIterator it = scoreTab->getRowsByWhereClause(where);
 
-    while (allScores->hasData())
+    while (!(it.isEnd()))
     {
-      int id;
-      allScores->getInt(0, &id);
-      TabRow r = scoreTab->operator [](id);
-
-      // check for the max sequence number
-      int thisSeqNum = r.getInt(SC_SEQ_NUM);
-      if (thisSeqNum > maxSeqNumIncluded)
-      {
-        break;
-      }
-
-      queue.pushScore(r.getInt(SC_SCORE));
-      allScores->step();
+      queue.pushScore((*it).getInt(SC_SCORE));
+      ++it;
     }
 
     PlainRankingEntry re;

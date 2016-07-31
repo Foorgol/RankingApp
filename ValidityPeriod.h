@@ -15,10 +15,10 @@ using namespace SqliteOverlay;
 
 namespace RankingApp {
 
-  class ValidityPeriod : public GenericDatabaseObject
+  class ValidityPeriod : public GenericDatabaseObject<RankingDb>
   {
     friend class PlayerMngr;
-    friend class SqliteOverlay::GenericObjectManager;
+    friend class SqliteOverlay::GenericObjectManager<RankingDb>;
 
   public:
     static constexpr int IS_BEFORE_PERIOD = -1;
@@ -37,8 +37,8 @@ namespace RankingApp {
     static std::function<bool (ValidityPeriod&, ValidityPeriod&)> getPlayerSortFunction_byActivationDate();
 
   private:
-    ValidityPeriod(SqliteDatabase* db, int rowId);
-    ValidityPeriod(SqliteDatabase* db, TabRow row);
+    ValidityPeriod(RankingDb* db, int rowId);
+    ValidityPeriod(RankingDb* db, TabRow row);
 
     time_t getRawBeginTime() const;
     time_t getRawEndTime() const;

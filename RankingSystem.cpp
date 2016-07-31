@@ -1,5 +1,8 @@
+#include <boost/algorithm/string.hpp>
+
 
 #include "RankingSystem.h"
+
 #include "RankingDb.h"
 #include "RankingDataDefs.h"
 #include "ConvenienceFuncs.h"
@@ -23,7 +26,7 @@ unique_ptr<RankingSystem> RankingSystem::createEmpty(const string& fname, ERR* e
 bool RankingApp::RankingSystem::isValidFilename(const string& fname)
 {
   string fn = fname;
-  ConvenienceFuncs::trim(fn);
+  boost::trim(fn);
   if (fn.empty()) return false;
   if (fn.front() == ':') return false;  // avoid special file names such as ":memory:"
   return true;
@@ -256,7 +259,7 @@ unique_ptr<RankingSystem> RankingSystem::doInit(const string& fname, bool doCrea
 
   // try to create a new database or open an existing
   string fn = fname;
-  ConvenienceFuncs::trim(fn);
+  boost::trim(fn);
   auto dbPtr = SqliteDatabase::get<RankingDb>(fn, doCreateNew);
 
   // if that fails, return null

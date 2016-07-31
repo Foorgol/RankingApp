@@ -41,14 +41,14 @@ string Player::getFirstName() const
 
 //----------------------------------------------------------------------------
 
-Player::Player(SqliteDatabase* db, int rowId)
+Player::Player(RankingDb* db, int rowId)
 :GenericDatabaseObject(db, TAB_PLAYER, rowId)
 {
 }
 
 //----------------------------------------------------------------------------
 
-Player::Player(SqliteDatabase* db, TabRow row)
+Player::Player(RankingDb* db, TabRow row)
 :GenericDatabaseObject(db, row)
 {
 }

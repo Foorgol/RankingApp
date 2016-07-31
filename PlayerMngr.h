@@ -16,7 +16,7 @@ namespace RankingApp {
 
   class RankingSystem;
 
-  class PlayerMngr : public GenericObjectManager
+  class PlayerMngr : public GenericObjectManager<RankingDb>
   {
   public:
     PlayerMngr(RankingDb* _db, RankingSystem* _rs);
@@ -44,9 +44,7 @@ namespace RankingApp {
     static std::function<bool (Player&, Player&)> getPlayerSortFunction_byLastName();
 
   private:
-    RankingDb* db;
     RankingSystem* rs;
-    DbTab* playerTab;
     DbTab* validityTab;
 
   };

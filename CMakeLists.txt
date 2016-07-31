@@ -16,8 +16,13 @@ aux_source_directory(. SRC_LIST)
 # My SqliteOverlay lib
 #
 set(SQLITE_OVERLAY_INCLUDE_DIR "../SqliteOverlay")
-set(SQLITE_OVERLAY_LIB_DIR "../SqliteOverlay-build")
 set(SQLITE_OVERLAY_LIB "SqliteOverlay")
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    set(SQLITE_OVERLAY_LIB_DIR "../../SqliteOverlay/debug")
+else (CMAKE_BUILD_TYPE MATCHES Debug)
+    set(SQLITE_OVERLAY_LIB_DIR "../../SqliteOverlay/release")
+endif (CMAKE_BUILD_TYPE MATCHES Debug)
+
 
 #
 # Find Boost and GTest
@@ -89,7 +94,7 @@ if (BUILD_IMPORTER AND Boost_FOUND)
     add_executable(${PROJECT_NAME}_importer ${IMPORTER_SOURCES})
     set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD 14)
     set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD_REQUIRED ON)
-    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES} ${SQLITE_OVERLAY_LIB})
 endif (BUILD_IMPORTER AND Boost_FOUND)
 
 #

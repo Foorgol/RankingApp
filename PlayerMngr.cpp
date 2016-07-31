@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 
 #include "PlayerMngr.h"
 #include "MatchMngr.h"
@@ -11,7 +12,7 @@ using namespace RankingApp;
 
 
 PlayerMngr::PlayerMngr(RankingDb* _db, RankingSystem* _rs)
-  :GenericObjectManager(_db), db(_db), rs(_rs)
+  :GenericObjectManager(_db, TAB_PLAYER), rs(_rs)
 {
   if (_db == nullptr)
   {
@@ -22,7 +23,6 @@ PlayerMngr::PlayerMngr(RankingDb* _db, RankingSystem* _rs)
     throw std::invalid_argument("Received nullptr as ranking system handle");
   }
 
-  playerTab = db->getTab(TAB_PLAYER);
   validityTab = db->getTab(TAB_VALIDITY);
 }
 
@@ -31,9 +31,9 @@ PlayerMngr::PlayerMngr(RankingDb* _db, RankingSystem* _rs)
 upPlayer PlayerMngr::createNewPlayer(const string& firstName, const string& lastName, ERR* err) const
 {
   string fn = firstName;
-  ConvenienceFuncs::trim(fn);
+  boost::trim(fn);
   string ln = lastName;
-  ConvenienceFuncs::trim(ln);
+  boost::trim(ln);
 
   // make sure the player names are not empty
   if ((fn.empty()) || (ln.empty()))
@@ -54,7 +54,7 @@ upPlayer PlayerMngr::createNewPlayer(const string& firstName, const string& last
   ColumnValueClause cvc;
   cvc.addStringCol(PL_FIRSTNAME, fn);
   cvc.addStringCol(PL_LASTNAME, ln);
-  int newId = playerTab->insertRow(cvc);
+  int newId = tab->insertRow(cvc);
   if (newId < 1)
   {
     ConvenienceFuncs::setErr(err, ERR::DATABASE_ERROR);
@@ -72,14 +72,14 @@ upPlayer PlayerMngr::getPlayerByName(const string& firstName, const string& last
   WhereClause w;
   w.addStringCol(PL_FIRSTNAME, firstName);
   w.addStringCol(PL_LASTNAME, lastName);
-  return getSingleObjectByWhereClause<Player>(*playerTab, w);
+  return getSingleObjectByWhereClause<Player>(w);
 }
 
 //----------------------------------------------------------------------------
 
 upPlayer PlayerMngr::getPlayerById(int id) const
 {
-  return getSingleObjectByColumnValue<Player>(*playerTab, "id", id);
+  return getSingleObjectByColumnValue<Player>("id", id);
 }
 
 //----------------------------------------------------------------------------
@@ -103,7 +103,7 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
 
   // check 2: make sure that the new start date is later than all
   // existing validity periods
-  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(*validityTab, VA_PLAYER_REF, p.getId());
+  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
   for (ValidityPeriod vp : allPeriods)
   {
     if (vp.determineRelationToPeriod(startTime) != ValidityPeriod::IS_AFTER_PERIOD)
@@ -185,7 +185,7 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
     return ERR::PLAYER_IS_NOT_ENABLED;
   }
 
-  auto vp = getSingleObjectByWhereClause<ValidityPeriod>(*validityTab, w);
+  auto vp = getSingleObjectByWhereClause<ValidityPeriod>(validityTab, w);
   if (vp == nullptr)
   {
     return ERR::PLAYER_IS_NOT_ENABLED;   // shouldn't occur after the prev. check
@@ -237,7 +237,7 @@ bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int mo
   LocalTimestamp queriedDate{year, month, day, 12, 0, 0};
 
   // check if this timestamp is part of any validity period
-  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(*validityTab, VA_PLAYER_REF, p.getId());
+  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
   for (ValidityPeriod vp : allPeriods)
   {
     if (vp.isInPeriod(queriedDate))
@@ -253,7 +253,8 @@ bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int mo
 
 bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const string& isoDate) const
 {
-  StringList _isoDate = ConvenienceFuncs::splitString(isoDate, '-');
+  StringList _isoDate;
+  boost::split(_isoDate, isoDate, boost::is_any_of("-"));
   int year = stoi(_isoDate.at(0));
   int month = stoi(_isoDate.at(1));
   int day = stoi(_isoDate.at(2));
@@ -287,7 +288,7 @@ std::function<bool (Player&, Player&)> PlayerMngr::getPlayerSortFunction_byLastN
 
 vector<ValidityPeriod> PlayerMngr::getValidityPeriodsForPlayer(const Player& p) const
 {
-  return getObjectsByColumnValue<ValidityPeriod>(*validityTab, VA_PLAYER_REF, p.getId());
+  return getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
 }
 
 //----------------------------------------------------------------------------
@@ -298,7 +299,7 @@ upLocalTimestamp PlayerMngr::getEarliestActivationDateForPlayer(const Player& p)
   w.addIntCol(VA_PLAYER_REF, p.getId());
   w.addNotNullCol(VA_PERIOD_START);
   w.setOrderColumn_Asc(VA_PERIOD_START);
-  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(*validityTab, w);
+  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(validityTab, w);
   if (valPer == nullptr) return nullptr;
 
   return valPer->getPeriodStart();
@@ -322,7 +323,7 @@ upLocalTimestamp PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p)
   w.addNotNullCol(VA_PERIOD_START);
   w.addNotNullCol(VA_PERIOD_END);
   w.setOrderColumn_Desc(VA_PERIOD_END);
-  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(*validityTab, w);
+  auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(validityTab, w);
   if (valPer == nullptr) return nullptr;   // this shouldn't happen, but anyway...
 
   return valPer->getPeriodEnd();
@@ -332,7 +333,7 @@ upLocalTimestamp PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p)
 
 PlayerList PlayerMngr::getAllPlayers() const
 {
-  return getAllObjects<Player>(*playerTab);
+  return getAllObjects<Player>();
 }
 
 //----------------------------------------------------------------------------

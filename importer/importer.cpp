@@ -2,6 +2,8 @@
 #include <map>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
 
 #include "RankingDb.h"
 #include "RankingSystem.h"
@@ -79,7 +81,8 @@ int importValidityDates(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb,
     auto pl = pm.getPlayerById(id);
 
     string entry = r["entryDate"];
-    StringList chunks = ConvenienceFuncs::splitString(entry, '-');
+    StringList chunks;
+    boost::split(chunks, entry, boost::is_any_of("-"));
     int y = stoi(chunks[0]);
     int m = stoi(chunks[1]);
     int d = stoi(chunks[2]);
@@ -106,10 +109,10 @@ int importValidityDates(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb,
     if (!(exit->isNull()))
     {
       string exitDate = exit->get();
-      ConvenienceFuncs::trim(exitDate);
+      boost::trim(exitDate);
       if (!(exitDate.empty()))
       {
-        chunks = ConvenienceFuncs::splitString(exit->get(), '-');
+        boost::split(chunks, exitDate, boost::is_any_of("-"));
         y = stoi(chunks[0]);
         m = stoi(chunks[1]);
         d = stoi(chunks[2]);
@@ -245,7 +248,9 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     string isoDate = earliestActivation->getISODate();
 
     // split the initial score into five separate score events
-    StringList iniScore = ConvenienceFuncs::splitString(r["initialScore"], ',');
+    StringList iniScore;
+    string rawScore = r["initialScore"];
+    boost::split(iniScore, rawScore, boost::is_any_of(","));
     if (iniScore.size() != 5)
     {
       return 402;

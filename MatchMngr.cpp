@@ -10,7 +10,7 @@ using namespace RankingApp;
 
 
 MatchMngr::MatchMngr(RankingDb* _db, RankingSystem* _rs)
-  :GenericObjectManager(_db), db(_db), rs(_rs)
+  :GenericObjectManager(_db, TAB_MATCH), rs(_rs)
 {
   if (_db == nullptr)
   {
@@ -20,8 +20,6 @@ MatchMngr::MatchMngr(RankingDb* _db, RankingSystem* _rs)
   {
     throw std::invalid_argument("Received nullptr as ranking system handle");
   }
-
-  matchTab = db->getTab(TAB_MATCH);
 }
 
 //----------------------------------------------------------------------------
@@ -71,7 +69,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
   cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
   LocalTimestamp now;
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);
-  int newId = matchTab->insertRow(cvc);
+  int newId = tab->insertRow(cvc);
   if (newId < 1)
   {
     ConvenienceFuncs::setErr(err, ERR::DATABASE_ERROR);
@@ -109,7 +107,7 @@ ERR MatchMngr::confirmMatch(const Match& ma) const
 
 upMatch MatchMngr::getMatchById(int id) const
 {
-  return getSingleObjectByColumnValue<Match>(*matchTab, "id", id);
+  return getSingleObjectByColumnValue<Match>("id", id);
 }
 
 //----------------------------------------------------------------------------

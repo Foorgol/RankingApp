@@ -14,10 +14,10 @@ using namespace SqliteOverlay;
 
 namespace RankingApp {
 
-  class Player : public GenericDatabaseObject
+  class Player : public GenericDatabaseObject<RankingDb>
   {
     friend class PlayerMngr;
-    friend class SqliteOverlay::GenericObjectManager;
+    friend class SqliteOverlay::GenericObjectManager<RankingDb>;
 
   public:
     string getName__FirstNameFirst() const;
@@ -26,8 +26,8 @@ namespace RankingApp {
     string getFirstName() const;
 
   private:
-    Player(SqliteDatabase* db, int rowId);
-    Player(SqliteDatabase* db, TabRow row);
+    Player(RankingDb* db, int rowId);
+    Player(RankingDb* db, TabRow row);
   };
 
   typedef unique_ptr<Player> upPlayer;

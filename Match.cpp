@@ -77,14 +77,14 @@ LocalTimestamp Match::getMatchTime() const
 
 //----------------------------------------------------------------------------
 
-Match::Match(SqliteDatabase* db, int rowId)
+Match::Match(RankingDb* db, int rowId)
 :GenericDatabaseObject(db, TAB_PLAYER, rowId)
 {
 }
 
 //----------------------------------------------------------------------------
 
-Match::Match(SqliteDatabase* db, TabRow row)
+Match::Match(RankingDb* db, TabRow row)
 :GenericDatabaseObject(db, row)
 {
 }

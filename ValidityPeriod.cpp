@@ -11,14 +11,14 @@ constexpr int ValidityPeriod::IS_BEFORE_PERIOD;
 constexpr int ValidityPeriod::IS_IN_PERIOD;
 constexpr int ValidityPeriod::IS_AFTER_PERIOD;
 
-ValidityPeriod::ValidityPeriod(SqliteDatabase* db, int rowId)
+ValidityPeriod::ValidityPeriod(RankingDb* db, int rowId)
 :GenericDatabaseObject(db, TAB_PLAYER, rowId)
 {
 }
 
 //----------------------------------------------------------------------------
 
-ValidityPeriod::ValidityPeriod(SqliteDatabase* db, TabRow row)
+ValidityPeriod::ValidityPeriod(RankingDb* db, TabRow row)
 :GenericDatabaseObject(db, row)
 {
 }

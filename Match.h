@@ -15,10 +15,10 @@ using namespace SqliteOverlay;
 
 namespace RankingApp {
 
-  class Match : public GenericDatabaseObject
+  class Match : public GenericDatabaseObject<RankingDb>
   {
     friend class MatchMngr;
-    friend class SqliteOverlay::GenericObjectManager;
+    friend class SqliteOverlay::GenericObjectManager<RankingDb>;
 
   public:
     MATCH_STATE getState() const;
@@ -28,8 +28,8 @@ namespace RankingApp {
     LocalTimestamp getMatchTime() const;
 
   private:
-    Match(SqliteDatabase* db, int rowId);
-    Match(SqliteDatabase* db, TabRow row);
+    Match(RankingDb* db, int rowId);
+    Match(RankingDb* db, TabRow row);
   };
 
   typedef unique_ptr<Match> upMatch;

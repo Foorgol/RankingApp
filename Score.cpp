@@ -2,6 +2,9 @@
 #include <vector>
 #include <exception>
 
+#include <boost/algorithm/string.hpp>
+
+
 #include "Score.h"
 #include "ConvenienceFuncs.h"
 
@@ -66,7 +69,8 @@ GameScore::GameScore(int sc1, int sc2)
 unique_ptr<GameScore> GameScore::fromString(const string &s)
 {
   // we need exactly one delimiter
-  StringList scores = ConvenienceFuncs::splitString(s, ':');
+  StringList scores;
+  boost::split(scores, s, boost::is_any_of(":"));
   if (scores.size() != 2) return nullptr;
 
   // both scores must be valid numbers
@@ -75,11 +79,11 @@ unique_ptr<GameScore> GameScore::fromString(const string &s)
   try
   {
     string sc = scores.at(0);
-    ConvenienceFuncs::trim(sc);
+    boost::trim(sc);
     sc1 = stoi(sc);
 
     sc = scores.at(1);
-    ConvenienceFuncs::trim(sc);
+    boost::trim(sc);
     sc2 = stoi(sc);
   }
   catch (exception ex) {
@@ -175,7 +179,8 @@ GameScoreList MatchScore::string2GameScoreList(const string& s)
   GameScoreList result;
 
   // games are comma-separated
-  StringList games = ConvenienceFuncs::splitString(s, ',');
+  StringList games;
+  boost::split(games, s, boost::is_any_of(","));
   for (string gameString : games)
   {
     auto gameSore = GameScore::fromString(gameString);

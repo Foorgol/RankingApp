@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 
 #include "ScoreQueue.h"
 #include "ConvenienceFuncs.h"
@@ -37,7 +38,8 @@ upScoreQueue ScoreQueue::fromString(int _queueSize, const string& scoreString)
 {
   // the string shall be a comma-separated list of integers
   // with the oldest score being on the left side of the string
-  StringList scoreItems = ConvenienceFuncs::splitString(scoreString, ',');
+  StringList scoreItems;
+  boost::split(scoreItems, scoreString, boost::is_any_of(","));
 
   // generate the result object
   upScoreQueue result = upScoreQueue(new ScoreQueue(_queueSize, 0));
@@ -48,7 +50,7 @@ upScoreQueue ScoreQueue::fromString(int _queueSize, const string& scoreString)
   for (string _score : scoreItems)
   {
     // skip empty strings
-    ConvenienceFuncs::trim(_score);
+    boost::trim(_score);
     if (_score.empty())
     {
       continue;

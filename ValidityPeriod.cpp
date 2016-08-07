@@ -43,7 +43,7 @@ time_t ValidityPeriod::getRawEndTime() const
 
 bool ValidityPeriod::hasEndDate() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_END);
+  auto timestamp = row.getLocalTime2(VA_PERIOD_END, nullptr); // FIX ME: replace nullptr with real time zone
   return !(timestamp->isNull());
 }
 
@@ -58,13 +58,13 @@ bool ValidityPeriod::isInPeriod(const LocalTimestamp& lt) const
 
 int ValidityPeriod::determineRelationToPeriod(const LocalTimestamp& lt) const
 {
-  LocalTimestamp startTime = row.getLocalTime(VA_PERIOD_START);
+  LocalTimestamp startTime = row.getLocalTime(VA_PERIOD_START, nullptr); // FIX ME: replace nullptr with real time zone
   if (lt < startTime)
   {
     return IS_BEFORE_PERIOD;
   }
 
-  auto _endTime = row.getLocalTime2(VA_PERIOD_END);
+  auto _endTime = row.getLocalTime2(VA_PERIOD_END, nullptr);  // FIX ME: replace nullptr with real time zone
   if (_endTime->isNull())
   {
     // no end time set, so we are "per definitionem"
@@ -80,20 +80,20 @@ int ValidityPeriod::determineRelationToPeriod(const LocalTimestamp& lt) const
 
 upLocalTimestamp ValidityPeriod::getPeriodStart() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_START);
+  auto timestamp = row.getLocalTime2(VA_PERIOD_START, nullptr);  // FIX ME: replace nullptr with real time zone
   if (timestamp->isNull()) return nullptr;
 
-  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime()));
+  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime(), nullptr));  // FIX ME: replace nullptr with real time zone
 }
 
 //----------------------------------------------------------------------------
 
 upLocalTimestamp ValidityPeriod::getPeriodEnd() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_END);
+  auto timestamp = row.getLocalTime2(VA_PERIOD_END, nullptr);  // FIX ME: replace nullptr with real time zone
   if (timestamp->isNull()) return nullptr;
 
-  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime()));
+  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime(), nullptr));  // FIX ME: replace nullptr with real time zone
 }
 
 //----------------------------------------------------------------------------

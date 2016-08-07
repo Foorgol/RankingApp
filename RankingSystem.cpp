@@ -291,7 +291,7 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
   {
     maxIsoDateIncluded = getIsoDateForScoreSeqNum(maxSeqNumIncluded);
   } else {
-    maxIsoDateIncluded = LocalTimestamp().getISODate();  // today
+    maxIsoDateIncluded = LocalTimestamp(nullptr).getISODate();  // today; FIX ME: replace nullptr with real time zone!
   }
   PlayerList activePlayers = pm.getActivePlayersOnGivenDate(maxIsoDateIncluded);
 

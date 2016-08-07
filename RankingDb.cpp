@@ -45,7 +45,7 @@ void RankingApp::RankingDb::populateTables()
   // the score table
   col.push_back(genForeignKeyClause(SC_PLAYER_REF, TAB_PLAYER));
   addIntCol(SC_SCORE);
-  addStandardCol(SC_ISODATE, "VARCHAR(10)");
+  addIntCol(SC_ISODATE);
   addIntCol(SC_SEQ_NUM);
   addIntCol(SC_TYPE);
   col.push_back(genForeignKeyClause(SC_MATCH_REF, TAB_MATCH));
@@ -55,7 +55,7 @@ void RankingApp::RankingDb::populateTables()
 
   // the ranking
   // use a dedicated function for this, because this table
-  // is frequently drop and re-created during operation
+  // is frequently dropped and re-created during operation
   dropAndCreateRankingTab();
 
 }

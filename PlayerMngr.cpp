@@ -99,7 +99,7 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
   // construct a timestamp for the beginning of the new time period.
   //
   // Per definition, periods start at 00:00:01 of the selected day
-  LocalTimestamp startTime{startYear, startMonth, startDay, 0, 0, 1};
+  LocalTimestamp startTime{startYear, startMonth, startDay, 0, 0, 1, nullptr};  // FIX ME: replace nullptr with real time zone
 
   // check 2: make sure that the new start date is later than all
   // existing validity periods
@@ -194,7 +194,7 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
   // construct a timestamp for the end of the time period.
   //
   // Per definition, periods end at 23:59:59 of the selected day
-  LocalTimestamp endTime{endYear, endMonth, endDay, 23, 59, 59};
+  LocalTimestamp endTime{endYear, endMonth, endDay, 23, 59, 59, nullptr}; // FIX ME: replace nullptr with real time zone
 
   // step 2: make sure the end date is okay
   if (vp->determineRelationToPeriod(endTime) == ValidityPeriod::IS_BEFORE_PERIOD)
@@ -234,7 +234,7 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
 bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int month, int day) const
 {
   // construct a timestamp for the middle of the selected day
-  LocalTimestamp queriedDate{year, month, day, 12, 0, 0};
+  LocalTimestamp queriedDate{year, month, day, 12, 0, 0, nullptr};  // FIX ME: replace nullptr with real time zone
 
   // check if this timestamp is part of any validity period
   auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());

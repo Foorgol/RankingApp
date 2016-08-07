@@ -164,7 +164,7 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
 
     // try to convert the isoDate into a time object. This is only
     // for checking that the contents of "isoDate" are valid
-    upLocalTimestamp oldMatchTime = LocalTimestamp::fromISODate(isoDate, 12, 0, sameDayMatchCount);
+    upLocalTimestamp oldMatchTime = LocalTimestamp::fromISODate(isoDate, nullptr, 12, 0, sameDayMatchCount);  // FIX ME: replace nullptr with real time zone
     if (oldMatchTime == nullptr)
     {
       return 302;

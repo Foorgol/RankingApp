@@ -70,7 +70,7 @@ LocalTimestamp Match::getMatchTime() const
   //
   // THIS FUNCTION NEEDS TO BE KILLED OR RE-IMPLEMENTED!!
   //
-  return LocalTimestamp();
+  return LocalTimestamp(nullptr);  // FIX ME: replace nullptr with real time zone
 
   //return row.getLocalTime(MA_TIMESTAMP);
 }

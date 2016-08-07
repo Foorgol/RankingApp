@@ -67,7 +67,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
   cvc.addStringCol(MA_RESULT, score.toString());
   cvc.addStringCol(MA_ISODATE, isoDate);
   cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
-  LocalTimestamp now;
+  LocalTimestamp now{nullptr};
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);
   int newId = tab->insertRow(cvc);
   if (newId < 1)
@@ -94,7 +94,7 @@ ERR MatchMngr::confirmMatch(const Match& ma) const
   int newState = Match::MatchStateToInt(MATCH_STATE::CONFIRMED);
   ColumnValueClause cvc;
   cvc.addIntCol(MA_STATE, newState);
-  LocalTimestamp now;
+  LocalTimestamp now{nullptr};
   cvc.addDateTimeCol(MA_MATCH_CONFIRMED_TIMESTAMP, &now);
   ma.row.update(cvc);
 

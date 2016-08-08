@@ -84,6 +84,7 @@ set(LIB_SOURCES
     Score.cpp
     MatchMngr.cpp
     Match.cpp
+    RankingClass.cpp
 )
 
 #

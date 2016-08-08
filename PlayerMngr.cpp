@@ -7,6 +7,7 @@
 #include "ConvenienceFuncs.h"
 #include "RankingDataDefs.h"
 #include "RankingSystem.h"
+#include "RankingClass.h"
 
 using namespace RankingApp;
 

@@ -19,6 +19,7 @@ using namespace SqliteOverlay;
 namespace RankingApp {
 
   class RankingSystem;
+  class RankingClass;
 
   class MatchMngr : public GenericObjectManager<RankingDb>
   {

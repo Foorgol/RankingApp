@@ -13,6 +13,8 @@ namespace RankingApp {
   {
   public:
     static constexpr int MAX_NAME_LEN = 40;
+    static constexpr int MAX_RESULT_LEN = 40;
+    static constexpr int MAX_SCORE_QUEUE_LEN = 40;
 
     virtual void populateTables();
     virtual void populateViews();

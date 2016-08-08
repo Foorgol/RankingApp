@@ -28,6 +28,8 @@ namespace RankingApp {
   };
   typedef vector<PlainRankingEntry> PlainRankingEntryList;
 
+  class RankingClass;
+
   class RankingSystem
   {
   public:
@@ -39,14 +41,14 @@ namespace RankingApp {
     MatchMngr getMatchMngr();
 
     void recalcRankings(int maxSeqNumIncluded=-1);
-    PlainRankingEntryList recalcRanking(RankingClass rankClass, int maxSeqNumIncluded);
+    PlainRankingEntryList recalcRanking(const RankingClass& rankClass, int maxSeqNumIncluded);
     void storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted);
     int RankingClassToInt(RankingClass rc) const;
 
     ERR confirmMatchAndUpdateRanking(const Match& ma);
-    PlainRankingEntryList getSortedRanking(RankingClass rankClass) const;
+    PlainRankingEntryList getSortedRanking(const RankingClass& rankClass) const;
 
-    int getInitialScoreForNewPlayer(RankingClass rankClass, date startDate);
+    int getInitialScoreForNewPlayer(const RankingClass& rankClass, date startDate);
 
     void setLogLevel(SeverityLevel newLvl);
 

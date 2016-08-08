@@ -25,6 +25,11 @@
 #define MA_MATCH_STORED_TIMESTAMP "MatchStoredAt"
 #define MA_MATCH_CONFIRMED_TIMESTAMP "MatchConfirmedAt"
 
+// a list of managed rankings (singles, doubles, mixed, U19, ...)
+#define TAB_RANKING_CLASSES "RankingClasses"
+#define RC_NAME "Name"
+#define RC_IS_SINGLES "IsSingles"
+
 // score events
 #define TAB_SCORE "ScoreEvent"
 #define SC_PLAYER_REF "PlayerRef"
@@ -33,30 +38,19 @@
 #define SC_SEQ_NUM "SequenceNumber"
 #define SC_TYPE "ScoringType"
 #define SC_MATCH_REF "MatchRef"
-#define SC_SCORE_TARGET "ScoreTarget"   // Singles or doubles
-
-#define SC_SCORE_TARGET_SINGLES 1
-#define SC_SCORE_TARGET_DOUBLES 2
+#define SC_RANK_CLASS_REF "RankingClassRef"
 
 // the ranking itself
 #define TAB_RANKING "Ranking"
 #define RA_PLAYER_REF "PlayerRef"
-#define RA_RANKING_CLASS "RankingClass"   // singles or doubles
+#define RA_RANK_CLASS_REF "RankingClassRef"
 #define RA_RANK "Rank"
 #define RA_VALUE "Value"
 #define RA_SCORE_QUEUE "ScoreQueue"
 
-#define RA_RANKING_CLASS_SINGLES SC_SCORE_TARGET_SINGLES
-#define RA_RANKING_CLASS_DOUBLES SC_SCORE_TARGET_DOUBLES
 
 namespace RankingApp
 {
-
-  enum class RankingClass
-  {
-    Singles,
-    Doubles
-  };
 
   enum class MatchState
   {

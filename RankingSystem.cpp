@@ -6,6 +6,7 @@
 #include "RankingDb.h"
 #include "RankingDataDefs.h"
 #include "ConvenienceFuncs.h"
+#include "RankingClass.h"
 
 using namespace RankingApp;
 
@@ -50,18 +51,29 @@ MatchMngr RankingSystem::getMatchMngr()
 
 void RankingSystem::recalcRankings(int maxSeqNumIncluded)
 {
+  //
+  // FIX ME: THIS NEED TO BE COMPLETELY RE-WRITTEN!
+  //
+  /*
   // calculate the "sub-rankings"
   PlainRankingEntryList singles = recalcRanking(RankingClass::Singles, maxSeqNumIncluded);
   PlainRankingEntryList doubles = recalcRanking(RankingClass::Doubles, maxSeqNumIncluded);
 
   // write to the database
   storeRankingEntries(singles, doubles);
+  */
 }
 
 //----------------------------------------------------------------------------
 
 void RankingSystem::storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted)
 {
+  //
+  // FIX ME: THIS NEEDS TO BE COMPLETELY RE-WRITTEN!
+  //
+
+  /*
+
   // replace the old ranking tables completely
   db->dropAndCreateRankingTab();
 
@@ -84,22 +96,8 @@ void RankingSystem::storeRankingEntries(const PlainRankingEntryList& singlesRank
   {
     storePlainRankingEntry(re, RA_RANKING_CLASS_DOUBLES);
   }
-}
 
-//----------------------------------------------------------------------------
-
-int RankingSystem::RankingClassToInt(RankingClass rc) const
-{
-  if (rc == RankingClass::Singles)
-  {
-    return RA_RANKING_CLASS_SINGLES;
-  }
-  if (rc == RankingClass::Doubles)
-  {
-    return RA_RANKING_CLASS_DOUBLES;
-  }
-
-  return -1;
+  */
 }
 
 //----------------------------------------------------------------------------
@@ -126,19 +124,24 @@ ERR RankingSystem::confirmMatchAndUpdateRanking(const Match& ma)
 //    // shift
 //  }
 
+  //
+  // FIX ME: RE-WRITE COMPLETELY BELOW THIS POINT
+  //
+
+  /*
   // get the (now outdated) ranking
   RankingClass rankClass = ma.isDoubles() ? RankingClass::Doubles : RankingClass::Singles;
   PlainRankingEntryList rel = getSortedRanking(rankClass);
 
   // !!! HIER WEITERMACHEN !!!
   // FRAGE: alle bereits verteilten punkte, die zeitlich nach dem spiel liegen, neu berechnen?
-
+*/
   return ERR::SUCCESS;
 }
 
 //----------------------------------------------------------------------------
 
-PlainRankingEntryList RankingSystem::getSortedRanking(RankingClass rankClass) const
+PlainRankingEntryList RankingSystem::getSortedRanking(const RankingClass& rankClass) const
 {
   PlainRankingEntryList result;
 
@@ -147,8 +150,8 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RankingClass rankClass) co
   string sql = "SELECT id FROM ? WHERE ?=? ORDER BY ? ASC";
   upSqlStatement stmt = db->prepStatement(sql);
   stmt->bindString(1, TAB_RANKING);
-  stmt->bindString(2, RA_RANKING_CLASS);
-  stmt->bindInt(3, rClass);
+  stmt->bindString(2, RA_RANK_CLASS_REF);
+  stmt->bindInt(3, rankClass.getId());
   stmt->bindString(4, RA_RANK);
 
   db->execContentQuery(stmt);
@@ -173,7 +176,7 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RankingClass rankClass) co
 
 //----------------------------------------------------------------------------
 
-int RankingSystem::getInitialScoreForNewPlayer(RankingClass rankClass, greg::date startDate)
+int RankingSystem::getInitialScoreForNewPlayer(const RankingClass& rankClass, greg::date startDate)
 {
   //
   // THIS FUNCTION NEEDS TO BE COMPLETELY RE-WRITTEN
@@ -282,7 +285,7 @@ unique_ptr<RankingSystem> RankingSystem::doInit(const string& fname, bool doCrea
 
 //----------------------------------------------------------------------------
 
-PlainRankingEntryList RankingSystem::recalcRanking(RankingClass rankClass, int maxSeqNumIncluded)
+PlainRankingEntryList RankingSystem::recalcRanking(const RankingClass& rankClass, int maxSeqNumIncluded)
 {
   // get a list of the active players
   PlayerMngr pm = getPlayerMngr();
@@ -304,7 +307,7 @@ PlainRankingEntryList RankingSystem::recalcRanking(RankingClass rankClass, int m
 
     WhereClause where;
     where.addIntCol(SC_PLAYER_REF, p.getId());
-    where.addIntCol(SC_SCORE_TARGET, RankingClassToInt(rankClass));
+    where.addIntCol(SC_RANK_CLASS_REF, rankClass.getId());
     if (maxSeqNumIncluded >= 0)
     {
       where.addIntCol(SC_SEQ_NUM, "<=", maxSeqNumIncluded);
@@ -435,8 +438,8 @@ void RankingSystem::rewriteMatchScores(int maxSeqNumIncluded)
 
   // reprocess all score events dated on maxIsoTimeIncluded and later than maxSeqNumIncluded; if the
   // score event is a match, recalculate the scores
-  for (RankingClass rankclass : {RankingClass::Singles, RankingClass::Singles})
-  {
+  //for (RankingClass rankclass : {RankingClass::Singles, RankingClass::Singles})
+  //{
     // !!! Hier Weitermachen
 
 //    // read the current ranking up to minMinusOne
@@ -453,7 +456,7 @@ void RankingSystem::rewriteMatchScores(int maxSeqNumIncluded)
 //    while (!(it.isEnd()))
 //    {
 //    }
-  }
+//  }
 
 }
 

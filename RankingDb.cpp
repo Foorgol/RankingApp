@@ -1,4 +1,5 @@
 
+#include "TableCreator.h"
 
 #include "RankingDb.h"
 #include "RankingDataDefs.h"
@@ -6,52 +7,45 @@
 
 void RankingApp::RankingDb::populateTables()
 {
-  StringList col;
-  auto addStandardCol = [&col](const char* colName, const string& colType) {
-    col.push_back(string(colName) + " " + colType);
-  };
-  auto addIntCol = [&addStandardCol](const char* colName) {
-    addStandardCol(colName, "INTEGER");
-  };
-
-  string defaultNameColDef = " VARCHAR(" + to_string(MAX_NAME_LEN) + ")";
+  TableCreator tc{this};
 
   // the player table
-  col.push_back(PL_FIRSTNAME + defaultNameColDef);
-  col.push_back(PL_LASTNAME + defaultNameColDef);
-  tableCreationHelper(TAB_PLAYER, col);
-  col.clear();
+  tc.addVarchar(PL_FIRSTNAME, MAX_NAME_LEN, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addVarchar(PL_LASTNAME, MAX_NAME_LEN, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.createTableAndResetCreator(TAB_PLAYER);
 
   // the validity table
-  col.push_back(genForeignKeyClause(VA_PLAYER_REF, TAB_PLAYER));
-  addIntCol(VA_PERIOD_START);
-  addIntCol(VA_PERIOD_END);
-  tableCreationHelper(TAB_VALIDITY, col);
-  col.clear();
+  tc.addForeignKey(VA_PLAYER_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addInt(VA_PERIOD_START, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(VA_PERIOD_END, false, CONFLICT_CLAUSE::__NOT_SET, false, CONFLICT_CLAUSE::__NOT_SET);
+  tc.createTableAndResetCreator(TAB_VALIDITY);
 
   // the table of matches
-  col.push_back(genForeignKeyClause(MA_WINNER1_REF, TAB_PLAYER));
-  col.push_back(genForeignKeyClause(MA_WINNER2_REF, TAB_PLAYER));
-  col.push_back(genForeignKeyClause(MA_LOSER1_REF, TAB_PLAYER));
-  col.push_back(genForeignKeyClause(MA_LOSER2_REF, TAB_PLAYER));
-  addStandardCol(MA_RESULT, "VARCHAR(40)");
-  addIntCol(MA_DATE);
-  addIntCol(MA_STATE);
-  addIntCol(MA_MATCH_STORED_TIMESTAMP);
-  addIntCol(MA_MATCH_CONFIRMED_TIMESTAMP);
-  tableCreationHelper(TAB_MATCH, col);
-  col.clear();
+  tc.addForeignKey(MA_WINNER1_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addForeignKey(MA_WINNER2_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addForeignKey(MA_LOSER1_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addForeignKey(MA_LOSER2_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addVarchar(MA_RESULT, MAX_RESULT_LEN, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(MA_DATE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(MA_STATE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(MA_MATCH_STORED_TIMESTAMP, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(MA_MATCH_CONFIRMED_TIMESTAMP, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.createTableAndResetCreator(TAB_MATCH);
+
+  // the rankings managed by this application
+  tc.addVarchar(RC_NAME, MAX_NAME_LEN, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(RC_IS_SINGLES, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.createTableAndResetCreator(TAB_RANKING_CLASSES);
 
   // the score table
-  col.push_back(genForeignKeyClause(SC_PLAYER_REF, TAB_PLAYER));
-  addIntCol(SC_SCORE);
-  addIntCol(SC_DATE);
-  addIntCol(SC_SEQ_NUM);
-  addIntCol(SC_TYPE);
-  col.push_back(genForeignKeyClause(SC_MATCH_REF, TAB_MATCH));
-  addIntCol(SC_SCORE_TARGET);
-  tableCreationHelper(TAB_SCORE, col);
-  col.clear();
+  tc.addForeignKey(SC_PLAYER_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addInt(SC_SCORE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(SC_DATE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(SC_SEQ_NUM, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(SC_TYPE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addForeignKey(SC_MATCH_REF, TAB_MATCH, CONSISTENCY_ACTION::RESTRICT);
+  tc.addForeignKey(SC_RANK_CLASS_REF, TAB_RANKING_CLASSES, CONSISTENCY_ACTION::RESTRICT);
+  tc.createTableAndResetCreator(TAB_SCORE);
 
   // the ranking
   // use a dedicated function for this, because this table
@@ -76,21 +70,14 @@ void RankingApp::RankingDb::dropAndCreateRankingTab()
   execNonQuery(sql);
 
   // create an empty table
-  StringList col;
-  auto addStandardCol = [&col](const char* colName, const string& colType) {
-    col.push_back(string(colName) + " " + colType);
-  };
-  auto addIntCol = [&addStandardCol](const char* colName) {
-    addStandardCol(colName, "INTEGER");
-  };
+  TableCreator tc{this};
+  tc.addForeignKey(RA_PLAYER_REF, TAB_PLAYER, CONSISTENCY_ACTION::RESTRICT);
+  tc.addForeignKey(RA_RANK_CLASS_REF, TAB_RANKING_CLASSES, CONSISTENCY_ACTION::RESTRICT);
+  tc.addInt(RA_RANK, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addInt(RA_VALUE, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.addVarchar(RA_SCORE_QUEUE, MAX_SCORE_QUEUE_LEN, false, CONFLICT_CLAUSE::__NOT_SET, true, CONFLICT_CLAUSE::ROLLBACK);
+  tc.createTableAndResetCreator(TAB_RANKING);
 
-  col.push_back(genForeignKeyClause(RA_PLAYER_REF, TAB_PLAYER));
-  addIntCol(RA_RANKING_CLASS);
-  addIntCol(RA_RANK);
-  addIntCol(RA_VALUE);
-  addStandardCol(RA_SCORE_QUEUE, "VARCHAR(40)");
-  tableCreationHelper(TAB_RANKING, col);
-  col.clear();
 }
 //----------------------------------------------------------------------------
 

@@ -85,6 +85,7 @@ set(LIB_SOURCES
 #    MatchMngr.cpp
 #    Match.cpp
     RankingClass.cpp
+    RankingClassMngr.cpp
 )
 
 #

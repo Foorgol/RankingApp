@@ -43,7 +43,7 @@ upPlayer PlayerMngr::createNewPlayer(const string& firstName, const string& last
   auto pl = getPlayerByName(fn, ln);
   if (pl != nullptr)
   {
-    ConvenienceFuncs::setErr(err, ERR::PLAYER_EXISTS);
+    ConvenienceFuncs::setErr(err, ERR::OBJECT_EXISTS);
     return nullptr;
   }
 

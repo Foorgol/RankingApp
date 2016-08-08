@@ -25,75 +25,56 @@ ValidityPeriod::ValidityPeriod(RankingDb* db, TabRow row)
 
 //----------------------------------------------------------------------------
 
-time_t ValidityPeriod::getRawBeginTime() const
-{
-  auto timestamp = row.getUTCTime2(VA_PERIOD_START);
-  return (timestamp->isNull()) ? -1 : timestamp->get().getRawTime();
-}
-
-//----------------------------------------------------------------------------
-
-time_t ValidityPeriod::getRawEndTime() const
-{
-  auto timestamp = row.getUTCTime2(VA_PERIOD_END);
-  return (timestamp->isNull()) ? -1 : timestamp->get().getRawTime();
-}
-
-//----------------------------------------------------------------------------
-
 bool ValidityPeriod::hasEndDate() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_END, nullptr); // FIX ME: replace nullptr with real time zone
-  return !(timestamp->isNull());
+  auto end = row.getDate2(VA_PERIOD_END);
+  return !(end->isNull());
 }
 
 //----------------------------------------------------------------------------
 
-bool ValidityPeriod::isInPeriod(const LocalTimestamp& lt) const
+bool ValidityPeriod::isInPeriod(const date& d) const
 {
-  return (determineRelationToPeriod(lt) == IS_IN_PERIOD);
+  return (determineRelationToPeriod(d) == IS_IN_PERIOD);
 }
 
 //----------------------------------------------------------------------------
 
-int ValidityPeriod::determineRelationToPeriod(const LocalTimestamp& lt) const
+int ValidityPeriod::determineRelationToPeriod(const date& d) const
 {
-  LocalTimestamp startTime = row.getLocalTime(VA_PERIOD_START, nullptr); // FIX ME: replace nullptr with real time zone
-  if (lt < startTime)
+  date start = row.getDate(VA_PERIOD_START);
+  if (d < start)
   {
     return IS_BEFORE_PERIOD;
   }
 
-  auto _endTime = row.getLocalTime2(VA_PERIOD_END, nullptr);  // FIX ME: replace nullptr with real time zone
-  if (_endTime->isNull())
+  auto _endDate = row.getDate2(VA_PERIOD_END);
+  if (_endDate->isNull())
   {
     // no end time set, so we are "per definitionem"
     // within the time period
     return IS_IN_PERIOD;
   }
 
-  LocalTimestamp endTime = _endTime->get();
-  return (lt <= endTime) ? IS_IN_PERIOD : IS_AFTER_PERIOD;
+  date end = _endDate->get();
+  return (d <= end) ? IS_IN_PERIOD : IS_AFTER_PERIOD;
 }
 
 //----------------------------------------------------------------------------
 
-upLocalTimestamp ValidityPeriod::getPeriodStart() const
+date ValidityPeriod::getPeriodStart() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_START, nullptr);  // FIX ME: replace nullptr with real time zone
-  if (timestamp->isNull()) return nullptr;
-
-  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime(), nullptr));  // FIX ME: replace nullptr with real time zone
+  return row.getDate(VA_PERIOD_START);
 }
 
 //----------------------------------------------------------------------------
 
-upLocalTimestamp ValidityPeriod::getPeriodEnd() const
+unique_ptr<date> ValidityPeriod::getPeriodEnd() const
 {
-  auto timestamp = row.getLocalTime2(VA_PERIOD_END, nullptr);  // FIX ME: replace nullptr with real time zone
-  if (timestamp->isNull()) return nullptr;
+  auto end = row.getDate2(VA_PERIOD_END);
+  if (end->isNull()) return nullptr;
 
-  return upLocalTimestamp(new LocalTimestamp(timestamp->get().getRawTime(), nullptr));  // FIX ME: replace nullptr with real time zone
+  return unique_ptr<date>(new date(end->get()));
 }
 
 //----------------------------------------------------------------------------
@@ -101,7 +82,7 @@ upLocalTimestamp ValidityPeriod::getPeriodEnd() const
 std::function<bool (ValidityPeriod&, ValidityPeriod&)> ValidityPeriod::getPlayerSortFunction_byActivationDate()
 {
   return [](ValidityPeriod& v1, ValidityPeriod& v2) {
-    return (v1.getRawBeginTime() < v2.getRawBeginTime());
+    return (v1.getPeriodStart() < v2.getPeriodStart());
   };
 }
 

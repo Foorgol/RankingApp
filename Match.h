@@ -25,7 +25,7 @@ namespace RankingApp {
     static int MatchStateToInt(MATCH_STATE state);
     static MATCH_STATE intToMatchState(int state);
     bool isDoubles() const;
-    LocalTimestamp getMatchTime() const;
+    greg::date getMatchTime() const;
 
   private:
     Match(RankingDb* db, int rowId);

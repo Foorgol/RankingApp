@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <boost/date_time/gregorian/gregorian.hpp>
+
 #include "RankingDb.h"
 #include "RankingErrCodes.h"
 #include "GenericObjectManager.h"
@@ -24,7 +26,7 @@ namespace RankingApp {
     MatchMngr(RankingDb* _db, RankingSystem* _rs);
 
     // create
-    upMatch stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const string& isoDate, ERR* err=nullptr) const;
+    upMatch stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const boost::gregorian::date& date, ERR* err=nullptr) const;
     ERR confirmMatch(const Match& ma) const;
 
     // getters

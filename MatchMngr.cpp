@@ -1,4 +1,6 @@
 
+#include <Sloppy/DateTime/DateAndTime.h>
+
 #include "MatchMngr.h"
 #include "RankingDb.h"
 #include "ConvenienceFuncs.h"
@@ -24,7 +26,7 @@ MatchMngr::MatchMngr(RankingDb* _db, RankingSystem* _rs)
 
 //----------------------------------------------------------------------------
 
-upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const string& isoDate, ERR* err) const
+upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& player2, MatchScore& score, const boost::gregorian::date& date, ERR* err) const
 {
   // players may not be identical
   if (player1 == player2)
@@ -42,12 +44,12 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
 
   // all players must have been enabled when the match took place
   PlayerMngr pm{db, rs};
-  if (!(pm.isPlayerEnabledOnSpecificDate(player1, isoDate)))
+  if (!(pm.isPlayerEnabledOnSpecificDate(player1, date)))
   {
     ConvenienceFuncs::setErr(err, ERR::INACTIVE_PLAYERS_IN_MATCH);
     return nullptr;
   }
-  if (!(pm.isPlayerEnabledOnSpecificDate(player2, isoDate)))
+  if (!(pm.isPlayerEnabledOnSpecificDate(player2, date)))
   {
     ConvenienceFuncs::setErr(err, ERR::INACTIVE_PLAYERS_IN_MATCH);
     return nullptr;
@@ -65,9 +67,9 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
     score.swapPlayers();  // winner score is always the first in the game score
   }
   cvc.addStringCol(MA_RESULT, score.toString());
-  cvc.addStringCol(MA_ISODATE, isoDate);
+  cvc.addDateCol(MA_DATE, date);
   cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
-  LocalTimestamp now{nullptr};
+  UTCTimestamp now{};
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);
   int newId = tab->insertRow(cvc);
   if (newId < 1)
@@ -94,7 +96,7 @@ ERR MatchMngr::confirmMatch(const Match& ma) const
   int newState = Match::MatchStateToInt(MATCH_STATE::CONFIRMED);
   ColumnValueClause cvc;
   cvc.addIntCol(MA_STATE, newState);
-  LocalTimestamp now{nullptr};
+  UTCTimestamp now{};
   cvc.addDateTimeCol(MA_MATCH_CONFIRMED_TIMESTAMP, &now);
   ma.row.update(cvc);
 

@@ -46,9 +46,9 @@ namespace RankingApp {
     ERR confirmMatchAndUpdateRanking(const Match& ma);
     PlainRankingEntryList getSortedRanking(RANKING_CLASS rankClass) const;
 
-    int getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int startYear, int startMonth, int startDay);
+    int getInitialScoreForNewPlayer(RANKING_CLASS rankClass, date startDate);
 
-    void setLogLevel(int newLvl);
+    void setLogLevel(SeverityLevel newLvl);
 
   protected:
     upRankingDb db;
@@ -57,7 +57,7 @@ namespace RankingApp {
     void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass);
     void assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const;
     void rewriteMatchScores(int maxSeqNumIncluded);
-    string getIsoDateForScoreSeqNum(int seqNum);
+    date getDateForScoreSeqNum(int seqNum);
   };
 
   typedef unique_ptr<RankingSystem> upRankingSystem;

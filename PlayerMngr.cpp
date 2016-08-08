@@ -84,7 +84,7 @@ upPlayer PlayerMngr::getPlayerById(int id) const
 
 //----------------------------------------------------------------------------
 
-ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int startDay, bool skipInitialScore) const
+ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipInitialScore) const
 {
   // check 1: make sure that all existing time periods are closed
   // before we open a new one
@@ -96,24 +96,19 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
     return ERR::PLAYER_IS_ALREADY_ENABLED;
   }
 
-  // construct a timestamp for the beginning of the new time period.
-  //
-  // Per definition, periods start at 00:00:01 of the selected day
-  LocalTimestamp startTime{startYear, startMonth, startDay, 0, 0, 1, nullptr};  // FIX ME: replace nullptr with real time zone
-
   // check 2: make sure that the new start date is later than all
   // existing validity periods
   auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
   for (ValidityPeriod vp : allPeriods)
   {
-    if (vp.determineRelationToPeriod(startTime) != ValidityPeriod::IS_AFTER_PERIOD)
+    if (vp.determineRelationToPeriod(startDate) != ValidityPeriod::IS_AFTER_PERIOD)
     {
       return ERR::START_DATE_TOO_EARLY;
     }
   }
 
   // check 3: make sure we don't have too many active players
-  PlayerList activePlayers = getActivePlayersOnGivenDate(startTime.getISODate());
+  PlayerList activePlayers = getActivePlayersOnGivenDate(startDate);
   if (activePlayers.size() >= MAX_ACTIVE_PLAYER_COUNT)
   {
     return ERR::TOO_MANY_PLAYERS;
@@ -124,8 +119,8 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
   int iniScoreDoubles = -1;
   if (!skipInitialScore)
   {
-    iniScoreSingles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::SINGLES, startYear, startMonth, startDay);
-    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::DOUBLES, startYear, startMonth, startDay);
+    iniScoreSingles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::SINGLES, startDate);
+    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::DOUBLES, startDate);
     if ((iniScoreSingles < 0) || (iniScoreDoubles < 0))
     {
       return ERR::COULD_NOT_DETERMINE_INITIAL_SCORE;
@@ -135,9 +130,13 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
   // everything is okay and we can setup the new period
   ColumnValueClause cvc;
   cvc.addIntCol(VA_PLAYER_REF, p.getId());
-  cvc.addDateTimeCol(VA_PERIOD_START, &startTime);
+  cvc.addDateCol(VA_PERIOD_START, startDate);
   validityTab->insertRow(cvc);
 
+  //
+  // FIX ME: adapt the rest of the function!!
+  //
+/*
   // push the initial score to the database
   if (!skipInitialScore)
   {
@@ -167,14 +166,14 @@ ERR PlayerMngr::enablePlayer(const Player& p, int startYear, int startMonth, int
       ++rawStartTime;
     }
   }
-
+*/
 
   return ERR::SUCCESS;
 }
 
 //----------------------------------------------------------------------------
 
-ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int endDay) const
+ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
 {
   // step 1: get the currently open period
   WhereClause w;
@@ -191,13 +190,8 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
     return ERR::PLAYER_IS_NOT_ENABLED;   // shouldn't occur after the prev. check
   }
 
-  // construct a timestamp for the end of the time period.
-  //
-  // Per definition, periods end at 23:59:59 of the selected day
-  LocalTimestamp endTime{endYear, endMonth, endDay, 23, 59, 59, nullptr}; // FIX ME: replace nullptr with real time zone
-
   // step 2: make sure the end date is okay
-  if (vp->determineRelationToPeriod(endTime) == ValidityPeriod::IS_BEFORE_PERIOD)
+  if (vp->determineRelationToPeriod(endDate) == ValidityPeriod::IS_BEFORE_PERIOD)
   {
     return ERR::END_DATE_TOO_EARLY;
   }
@@ -208,58 +202,42 @@ ERR PlayerMngr::disablePlayer(const Player& p, int endYear, int endMonth, int en
   upMatch latestMatchDoubles = mm.getLatestMatchForPlayer(p, RANKING_CLASS::DOUBLES, false);
   if (latestMatchSingles != nullptr)
   {
-    LocalTimestamp maDate = latestMatchSingles->getMatchTime();
-    if (maDate > endTime)
+    date maDate = latestMatchSingles->getMatchTime();
+    if (maDate > endDate)
     {
       return ERR::END_DATE_TOO_EARLY;
     }
   }
   if (latestMatchDoubles != nullptr)
   {
-    LocalTimestamp maDate = latestMatchDoubles->getMatchTime();
-    if (maDate > endTime)
+    date maDate = latestMatchDoubles->getMatchTime();
+    if (maDate > endDate)
     {
       return ERR::END_DATE_TOO_EARLY;
     }
   }
 
   // everything is okay, we can disable the player
-  vp->row.update(VA_PERIOD_END, endTime);
+  vp->row.update(VA_PERIOD_END, endDate);
 
   return ERR::SUCCESS;
 }
 
 //----------------------------------------------------------------------------
 
-bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, int year, int month, int day) const
+bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const date& d) const
 {
-  // construct a timestamp for the middle of the selected day
-  LocalTimestamp queriedDate{year, month, day, 12, 0, 0, nullptr};  // FIX ME: replace nullptr with real time zone
-
-  // check if this timestamp is part of any validity period
+  // check if the date is part of any validity period
   auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
   for (ValidityPeriod vp : allPeriods)
   {
-    if (vp.isInPeriod(queriedDate))
+    if (vp.isInPeriod(d))
     {
       return true;
     }
   }
 
   return false;
-}
-
-//----------------------------------------------------------------------------
-
-bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const string& isoDate) const
-{
-  StringList _isoDate;
-  boost::split(_isoDate, isoDate, boost::is_any_of("-"));
-  int year = stoi(_isoDate.at(0));
-  int month = stoi(_isoDate.at(1));
-  int day = stoi(_isoDate.at(2));
-
-  return isPlayerEnabledOnSpecificDate(p, year, month, day);
 }
 
 //----------------------------------------------------------------------------
@@ -293,7 +271,7 @@ vector<ValidityPeriod> PlayerMngr::getValidityPeriodsForPlayer(const Player& p) 
 
 //----------------------------------------------------------------------------
 
-upLocalTimestamp PlayerMngr::getEarliestActivationDateForPlayer(const Player& p) const
+unique_ptr<greg::date> PlayerMngr::getEarliestActivationDateForPlayer(const Player& p) const
 {
   WhereClause w;
   w.addIntCol(VA_PLAYER_REF, p.getId());
@@ -302,12 +280,12 @@ upLocalTimestamp PlayerMngr::getEarliestActivationDateForPlayer(const Player& p)
   auto valPer = getSingleObjectByWhereClause<ValidityPeriod>(validityTab, w);
   if (valPer == nullptr) return nullptr;
 
-  return valPer->getPeriodStart();
+  return make_unique<greg::date>(valPer->getPeriodStart());
 }
 
 //----------------------------------------------------------------------------
 
-upLocalTimestamp PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p) const
+unique_ptr<greg::date> PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p) const
 {
   // is there a validity period item with end == NULL?
   WhereClause w;
@@ -338,12 +316,12 @@ PlayerList PlayerMngr::getAllPlayers() const
 
 //----------------------------------------------------------------------------
 
-PlayerList PlayerMngr::getActivePlayersOnGivenDate(const string& isoDate) const
+PlayerList PlayerMngr::getActivePlayersOnGivenDate(const greg::date& date) const
 {
   PlayerList result;
   for (Player p : getAllPlayers())
   {
-    if (isPlayerEnabledOnSpecificDate(p, isoDate))
+    if (isPlayerEnabledOnSpecificDate(p, date))
     {
       result.push_back(p);
     }

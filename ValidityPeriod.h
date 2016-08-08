@@ -9,9 +9,10 @@
 #include "RankingErrCodes.h"
 #include "GenericDatabaseObject.h"
 #include "GenericObjectManager.h"
-#include "DateAndTime.h"
+#include "Sloppy/DateTime/DateAndTime.h"
 
 using namespace SqliteOverlay;
+using namespace boost::gregorian;
 
 namespace RankingApp {
 
@@ -26,12 +27,12 @@ namespace RankingApp {
     static constexpr int IS_AFTER_PERIOD = 1;
 
     bool hasEndDate() const;
-    bool isInPeriod(const LocalTimestamp& lt) const;
-    int determineRelationToPeriod(const LocalTimestamp& lt) const;
+    bool isInPeriod(const date& d) const;
+    int determineRelationToPeriod(const date& d) const;
 
     // getters
-    upLocalTimestamp getPeriodStart() const;
-    upLocalTimestamp getPeriodEnd() const;
+    date getPeriodStart() const;
+    unique_ptr<date> getPeriodEnd() const;
 
     // comparison functions for std::sort
     static std::function<bool (ValidityPeriod&, ValidityPeriod&)> getPlayerSortFunction_byActivationDate();
@@ -39,9 +40,6 @@ namespace RankingApp {
   private:
     ValidityPeriod(RankingDb* db, int rowId);
     ValidityPeriod(RankingDb* db, TabRow row);
-
-    time_t getRawBeginTime() const;
-    time_t getRawEndTime() const;
   };
 
   typedef unique_ptr<ValidityPeriod> upValidity;

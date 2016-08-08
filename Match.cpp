@@ -36,7 +36,7 @@ int Match::MatchStateToInt(MATCH_STATE state)
     return MA_STATE_CONFIRMED;
   }
 
-  throw runtime_error("Encountered invalid match state");
+  throw std::runtime_error("Encountered invalid match state");
 }
 
 //----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ MATCH_STATE Match::intToMatchState(int state)
     return MATCH_STATE::CONFIRMED;
   }
 
-  throw runtime_error("Encountered invalid match state");
+  throw std::runtime_error("Encountered invalid match state");
 }
 
 //----------------------------------------------------------------------------
@@ -65,14 +65,9 @@ bool Match::isDoubles() const
 
 //----------------------------------------------------------------------------
 
-LocalTimestamp Match::getMatchTime() const
+boost::gregorian::date Match::getMatchTime() const
 {
-  //
-  // THIS FUNCTION NEEDS TO BE KILLED OR RE-IMPLEMENTED!!
-  //
-  return LocalTimestamp(nullptr);  // FIX ME: replace nullptr with real time zone
-
-  //return row.getLocalTime(MA_TIMESTAMP);
+  return row.getDate(MA_DATE);
 }
 
 //----------------------------------------------------------------------------

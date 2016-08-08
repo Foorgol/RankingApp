@@ -19,8 +19,6 @@ namespace RankingApp {
   class ConvenienceFuncs
   {
   public:
-    static constexpr int MIN_YEAR = 1900;
-    static constexpr int MAX_YEAR = 2050;  // arbitrarily chosen by me
 
     // assign an error value to a pointer
     static inline void setErr(ERR* ptr, ERR val)

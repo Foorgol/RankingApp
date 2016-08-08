@@ -28,13 +28,26 @@ endif (CMAKE_BUILD_TYPE MATCHES Debug)
 # Find Boost and GTest
 #
 find_package(GTest)
-find_package(Boost COMPONENTS filesystem system)
+find_package(Boost COMPONENTS filesystem system log log_setup)
+add_definitions(-DBOOST_LOG_DYN_LINK=1)  # linking fails if this is not set
 
 #
 # The WebToolkit (Wt)
 #
 set(WT_LIB "wt")
 set(WT_CONNECTOR "wthttp")
+
+#
+# My lib of sloppyly implemented helper functions
+#
+set(Sloppy_HOME_DIR "../libSloppy")
+set(Sloppy_INCLUDE_DIR ${Sloppy_HOME_DIR})
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+  find_library(Sloppy_LIB NAME Sloppy HINTS "${Sloppy_HOME_DIR}/debug")
+else (CMAKE_BUILD_TYPE MATCHES Debug)
+  find_library(Sloppy_LIB NAME Sloppy HINTS "${Sloppy_HOME_DIR}/release")
+endif (CMAKE_BUILD_TYPE MATCHES Debug)
+include_directories(${Sloppy_INCLUDE_DIR})
 
 #
 # The web application
@@ -87,14 +100,14 @@ if (BUILD_WEB_APP)
     add_executable(${PROJECT_NAME} ${APP_SOURCES})
     set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
     set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-    target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Logic ${WT_LIB} ${WT_CONNECTOR})
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Logic ${WT_LIB} ${WT_CONNECTOR} ${Sloppy_LIB})
 endif (BUILD_WEB_APP)
 
 if (BUILD_IMPORTER AND Boost_FOUND)
     add_executable(${PROJECT_NAME}_importer ${IMPORTER_SOURCES})
     set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD 14)
     set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD_REQUIRED ON)
-    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES} ${SQLITE_OVERLAY_LIB})
+    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES} ${SQLITE_OVERLAY_LIB} ${Sloppy_LIB})
 endif (BUILD_IMPORTER AND Boost_FOUND)
 
 #
@@ -118,5 +131,5 @@ if (GTEST_FOUND AND Boost_FOUND AND BUILD_TESTS)
     set_property(TARGET ${PROJECT_NAME}_Tests PROPERTY CXX_STANDARD 11)
     set_property(TARGET ${PROJECT_NAME}_Tests PROPERTY CXX_STANDARD_REQUIRED ON)
 
-    target_link_libraries(${PROJECT_NAME}_Tests ${PROJECT_NAME}_Logic ${GTEST_BOTH_LIBRARIES} ${Boost_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME}_Tests ${PROJECT_NAME}_Logic ${GTEST_BOTH_LIBRARIES} ${Boost_LIBRARIES} ${Sloppy_LIB})
 endif (GTEST_FOUND AND Boost_FOUND)

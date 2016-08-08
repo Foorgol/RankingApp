@@ -115,7 +115,7 @@ ERR RankingSystem::confirmMatchAndUpdateRanking(const Match& ma)
   }
 
   // default: score time = match time
-  LocalTimestamp scoreTime = ma.getMatchTime();
+  greg::date scoreDate = ma.getMatchTime();
 
   // is the match date later than the latest score event?
   // if not, we have to recalc all scores / matches that
@@ -173,7 +173,7 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RANKING_CLASS rankClass) c
 
 //----------------------------------------------------------------------------
 
-int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int startYear, int startMonth, int startDay)
+int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, greg::date startDate)
 {
   //
   // THIS FUNCTION NEEDS TO BE COMPLETELY RE-WRITTEN
@@ -226,7 +226,7 @@ int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, int star
   */
 }
 
-void RankingSystem::setLogLevel(int newLvl)
+void RankingSystem::setLogLevel(Sloppy::Logger::SeverityLevel newLvl)
 {
   db->setLogLevel(newLvl);
 }
@@ -286,14 +286,14 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
 {
   // get a list of the active players
   PlayerMngr pm = getPlayerMngr();
-  string maxIsoDateIncluded;
-  if (maxSeqNumIncluded >= 0)
+  greg::date maxDateIncluded;
+  maxDateIncluded = getDateForScoreSeqNum(maxSeqNumIncluded);
+  if (maxDateIncluded.is_special())  // no scoring entries yet
   {
-    maxIsoDateIncluded = getIsoDateForScoreSeqNum(maxSeqNumIncluded);
-  } else {
-    maxIsoDateIncluded = LocalTimestamp(nullptr).getISODate();  // today; FIX ME: replace nullptr with real time zone!
+    db->dropAndCreateRankingTab();
+    return PlainRankingEntryList();
   }
-  PlayerList activePlayers = pm.getActivePlayersOnGivenDate(maxIsoDateIncluded);
+  PlayerList activePlayers = pm.getActivePlayersOnGivenDate(maxDateIncluded);
 
   // collect the scores for each active player in chronological order
   DbTab* scoreTab = db->getTab(TAB_SCORE);
@@ -459,16 +459,30 @@ void RankingSystem::rewriteMatchScores(int maxSeqNumIncluded)
 
 //----------------------------------------------------------------------------
 
-string RankingSystem::getIsoDateForScoreSeqNum(int seqNum)
+greg::date RankingSystem::getDateForScoreSeqNum(int seqNum)
 {
   DbTab* scoreTab = db->getTab(TAB_SCORE);
-  if (scoreTab->getMatchCountForColumnValue(SC_SEQ_NUM, seqNum) == 0)
+
+  // if the sequence number is "real" try to find the date
+  // for the associated scoring entry
+  if (seqNum >= 0)
   {
-    return "";  // invalid sequence number
+    if (scoreTab->getMatchCountForColumnValue(SC_SEQ_NUM, seqNum) == 0)
+    {
+      return greg::date();  // invalid sequence number
+    }
+
+    TabRow r = scoreTab->getSingleRowByColumnValue(SC_SEQ_NUM, seqNum);
+    return r.getDate(SC_DATE);
   }
 
-  TabRow r = scoreTab->getSingleRowByColumnValue(SC_SEQ_NUM, seqNum);
-  return r[SC_ISODATE];
+  // if the seqNum is less than zero, we determine the LATEST
+  // scoring event
+  string sql = "SELECT MAX(" + string(SC_DATE) + ") FROM TABLE ";
+  sql += string(TAB_SCORE);
+  auto maxDate = db->execScalarQueryInt(sql);
+  if (maxDate->isNull()) return greg::date();   // no scoring entries yet
+  return greg::from_int(maxDate->get());
 }
 
 //----------------------------------------------------------------------------

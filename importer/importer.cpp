@@ -3,6 +3,8 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/local_time/local_time.hpp>
 
 
 #include "RankingDb.h"
@@ -16,6 +18,7 @@ using namespace std;
 using namespace SqliteOverlay;
 using namespace RankingApp;
 namespace bfs = boost::filesystem;
+namespace greg = boost::gregorian;
 
 class NullDb : public SqliteDatabase
 {
@@ -81,25 +84,22 @@ int importValidityDates(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb,
     auto pl = pm.getPlayerById(id);
 
     string entry = r["entryDate"];
-    StringList chunks;
-    boost::split(chunks, entry, boost::is_any_of("-"));
-    int y = stoi(chunks[0]);
-    int m = stoi(chunks[1]);
-    int d = stoi(chunks[2]);
+    greg::date entryDate = greg::from_string(entry);
 
     // re-write wrong entry dates of some players to make database
     // consistent again
+    int d = entryDate.day();
     if (id == 65)
     {
-      --d;
+      entryDate -= greg::date_duration(1);
     }
     if (id == 76)
     {
-      d = d - 12;
+      entryDate -= greg::date_duration(12);
     }
 
     ERR err;
-    err = pm.enablePlayer(*pl, y, m, d, true);
+    err = pm.enablePlayer(*pl, entryDate, true);
     if (err != ERR::SUCCESS)
     {
       return 200;
@@ -112,12 +112,7 @@ int importValidityDates(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb,
       boost::trim(exitDate);
       if (!(exitDate.empty()))
       {
-        boost::split(chunks, exitDate, boost::is_any_of("-"));
-        y = stoi(chunks[0]);
-        m = stoi(chunks[1]);
-        d = stoi(chunks[2]);
-
-        err = pm.disablePlayer(*pl, y, m, d);
+        err = pm.disablePlayer(*pl, greg::from_string(exitDate));
         if (err != ERR::SUCCESS)
         {
           return 201;
@@ -138,6 +133,13 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
   DbTab* srcTab = srcDb->getTab("ranking_match");
   DbTab* dstTab = dstDb->getTab(TAB_MATCH);
   matchId_old2new.clear();
+
+  // prepare a timezone for creating timestamps for old match entries
+  using namespace boost::local_time;
+  tz_database tzdb;
+  tzdb.load_from_file("../date_time_zonespec.csv");
+  time_zone_ptr tzBerlin = tzdb.time_zone_from_region("Europe/Berlin");
+  if (tzBerlin == nullptr) return 300;
 
   // get matches in chronological order
   upSqlStatement srcRows = srcDb->execContentQuery("SELECT id FROM ranking_match ORDER BY matchDate ASC, id ASC");
@@ -162,13 +164,17 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
       sameDayMatchCount = 0;
     }
 
-    // try to convert the isoDate into a time object. This is only
+    // try to convert the isoDate into a time object. This is also
     // for checking that the contents of "isoDate" are valid
-    upLocalTimestamp oldMatchTime = LocalTimestamp::fromISODate(isoDate, nullptr, 12, 0, sameDayMatchCount);  // FIX ME: replace nullptr with real time zone
-    if (oldMatchTime == nullptr)
+    greg::date maDate = greg::from_string(isoDate);
+    if (maDate.is_special())
     {
       return 302;
     }
+
+    // fake a timestamp of 12:00 local time for the
+    // creation and confirmation date of the match entry
+    LocalTimestamp lt{maDate.year(), maDate.month(), maDate.day(), 12, 0, 0, tzBerlin};
 
     // create a new database entry for this match
     int winnerId = r.getInt("winner_id");
@@ -180,9 +186,9 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
     cvc.addIntCol(MA_LOSER1_REF, loserId);
     cvc.addIntCol(MA_RESULT, isThreeGames ? 1 : 0);
     cvc.addIntCol(MA_STATE, MA_STATE_CONFIRMED);
-    cvc.addStringCol(MA_ISODATE, isoDate);
-    cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, oldMatchTime.get());
-    cvc.addDateTimeCol(MA_MATCH_CONFIRMED_TIMESTAMP, oldMatchTime.get());
+    cvc.addDateCol(MA_DATE, maDate);
+    cvc.addIntCol(MA_MATCH_STORED_TIMESTAMP, lt.getRawTime());
+    cvc.addIntCol(MA_MATCH_CONFIRMED_TIMESTAMP, lt.getRawTime());
     int newId = dstTab->insertRow(cvc);
     if (newId < 1)
     {
@@ -209,7 +215,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
   {
   public:
     int reason;
-    string isoDate;
+    greg::date date;
     int seqNum;
     int score;
     int playerRef;
@@ -244,8 +250,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     // the players, I had to re-write some entry dates because
     // the old database is inconsistent
     auto pl = pm.getPlayerById(playerId);
-    auto earliestActivation = pm.getEarliestActivationDateForPlayer(*pl);
-    string isoDate = earliestActivation->getISODate();
+    auto earliestActivationDate = pm.getEarliestActivationDateForPlayer(*pl);
 
     // split the initial score into five separate score events
     StringList iniScore;
@@ -261,7 +266,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       _Score _sc;
       _sc.reason = SC_TYPE_INITIAL;
       _sc.score = sc;
-      _sc.isoDate = isoDate;
+      _sc.date = *earliestActivationDate;
       _sc.playerRef = playerId;
       _sc.seqNum = seqNum;   // use the same sequence number for all five score events
 
@@ -301,7 +306,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     _Score sc;
     sc.playerRef = r.getInt("player_id");
     sc.score = r.getInt("score");
-    sc.isoDate = isoDate;
+    sc.date = greg::from_string(isoDate);
 
     if (reason == 1)   // Match
     {
@@ -350,8 +355,8 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     // return (a.seqNum < b.seqNum);
 
     // first criterion: the score day
-    if (a.isoDate < b.isoDate) return true;
-    if (a.isoDate > b.isoDate) return false;
+    if (a.date < b.date) return true;
+    if (a.date > b.date) return false;
 
     // if scores are on the same day, initial scores come first,
     // then matches, then penalty scores
@@ -375,7 +380,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     ColumnValueClause cvc;
     cvc.addIntCol(SC_PLAYER_REF, sc.playerRef);
     cvc.addIntCol(SC_SCORE, sc.score);
-    cvc.addStringCol(SC_ISODATE, sc.isoDate);
+    cvc.addDateCol(SC_DATE, sc.date);
     cvc.addIntCol(SC_TYPE, sc.reason);
     cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_SINGLES);
     if (sc.reason == SC_TYPE_MATCH)
@@ -404,8 +409,8 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
 int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRankingSystem& rs)
 {
-  dstDb->setLogLevel(2);
-  rs->setLogLevel(2);
+  dstDb->setLogLevel(Sloppy::Logger::SeverityLevel::warning);
+  rs->setLogLevel(Sloppy::Logger::SeverityLevel::warning);
 
   // create a new column for the updated score
   string sql = "ALTER TABLE " + string(TAB_SCORE) + " ADD COLUMN OldScore INTEGER";

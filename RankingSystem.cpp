@@ -51,8 +51,8 @@ MatchMngr RankingSystem::getMatchMngr()
 void RankingSystem::recalcRankings(int maxSeqNumIncluded)
 {
   // calculate the "sub-rankings"
-  PlainRankingEntryList singles = recalcRanking(RANKING_CLASS::SINGLES, maxSeqNumIncluded);
-  PlainRankingEntryList doubles = recalcRanking(RANKING_CLASS::DOUBLES, maxSeqNumIncluded);
+  PlainRankingEntryList singles = recalcRanking(RankingClass::Singles, maxSeqNumIncluded);
+  PlainRankingEntryList doubles = recalcRanking(RankingClass::Doubles, maxSeqNumIncluded);
 
   // write to the database
   storeRankingEntries(singles, doubles);
@@ -88,13 +88,13 @@ void RankingSystem::storeRankingEntries(const PlainRankingEntryList& singlesRank
 
 //----------------------------------------------------------------------------
 
-int RankingSystem::RankingClassToInt(RANKING_CLASS rc) const
+int RankingSystem::RankingClassToInt(RankingClass rc) const
 {
-  if (rc == RANKING_CLASS::SINGLES)
+  if (rc == RankingClass::Singles)
   {
     return RA_RANKING_CLASS_SINGLES;
   }
-  if (rc == RANKING_CLASS::DOUBLES)
+  if (rc == RankingClass::Doubles)
   {
     return RA_RANKING_CLASS_DOUBLES;
   }
@@ -127,7 +127,7 @@ ERR RankingSystem::confirmMatchAndUpdateRanking(const Match& ma)
 //  }
 
   // get the (now outdated) ranking
-  RANKING_CLASS rankClass = ma.isDoubles() ? RANKING_CLASS::DOUBLES : RANKING_CLASS::SINGLES;
+  RankingClass rankClass = ma.isDoubles() ? RankingClass::Doubles : RankingClass::Singles;
   PlainRankingEntryList rel = getSortedRanking(rankClass);
 
   // !!! HIER WEITERMACHEN !!!
@@ -138,7 +138,7 @@ ERR RankingSystem::confirmMatchAndUpdateRanking(const Match& ma)
 
 //----------------------------------------------------------------------------
 
-PlainRankingEntryList RankingSystem::getSortedRanking(RANKING_CLASS rankClass) const
+PlainRankingEntryList RankingSystem::getSortedRanking(RankingClass rankClass) const
 {
   PlainRankingEntryList result;
 
@@ -162,7 +162,7 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RANKING_CLASS rankClass) c
     PlainRankingEntry re;
     re.playerRef = r.getInt(RA_PLAYER_REF);
     re.rank = r.getInt(RA_RANK);
-    re.scores = *(ScoreQueue::fromString(SCORE_QUEUE_DEPTH, r[RA_SCORE_QUEUE]));
+    re.scores = *(ScoreQueue::fromString(ScoreQueueDepth, r[RA_SCORE_QUEUE]));
     re.value = r.getInt(RA_VALUE);
 
     result.push_back(re);
@@ -173,7 +173,7 @@ PlainRankingEntryList RankingSystem::getSortedRanking(RANKING_CLASS rankClass) c
 
 //----------------------------------------------------------------------------
 
-int RankingSystem::getInitialScoreForNewPlayer(RANKING_CLASS rankClass, greg::date startDate)
+int RankingSystem::getInitialScoreForNewPlayer(RankingClass rankClass, greg::date startDate)
 {
   //
   // THIS FUNCTION NEEDS TO BE COMPLETELY RE-WRITTEN
@@ -282,7 +282,7 @@ unique_ptr<RankingSystem> RankingSystem::doInit(const string& fname, bool doCrea
 
 //----------------------------------------------------------------------------
 
-PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int maxSeqNumIncluded)
+PlainRankingEntryList RankingSystem::recalcRanking(RankingClass rankClass, int maxSeqNumIncluded)
 {
   // get a list of the active players
   PlayerMngr pm = getPlayerMngr();
@@ -300,7 +300,7 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
   PlainRankingEntryList result;
   for (Player p : activePlayers)
   {
-    ScoreQueue queue(SCORE_QUEUE_DEPTH);
+    ScoreQueue queue(ScoreQueueDepth);
 
     WhereClause where;
     where.addIntCol(SC_PLAYER_REF, p.getId());
@@ -337,7 +337,7 @@ PlainRankingEntryList RankingSystem::recalcRanking(RANKING_CLASS rankClass, int 
 
 //----------------------------------------------------------------------------
 
-void RankingSystem::sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass)
+void RankingSystem::sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RankingClass& rankClass)
 {
   sort(rel.begin(), rel.end(), [&](const PlainRankingEntry& a, const PlainRankingEntry& b) {
     int aSum = a.scores.getSum();
@@ -404,7 +404,7 @@ void RankingSystem::sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel,
 
 void RankingSystem::assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const
 {
-  int lastVal = MAX_RANK_VALUE;
+  int lastVal = MaxRankValue;
   int rank = 0;
   int lastSum = -1;
   for (PlainRankingEntry& re : rel)
@@ -420,7 +420,7 @@ void RankingSystem::assignRanksAndValuesToSortedPlainRankingEntryListInPlace(Pla
       re.value = lastVal;
     } else {
       lastSum = re.scores.getSum();
-      lastVal = MAX_RANK_VALUE - (re.rank - 1) * RANK_VALUE_STEP;
+      lastVal = MaxRankValue - (re.rank - 1) * RankValueStep;
       re.value = lastVal;
     }
   }
@@ -435,7 +435,7 @@ void RankingSystem::rewriteMatchScores(int maxSeqNumIncluded)
 
   // reprocess all score events dated on maxIsoTimeIncluded and later than maxSeqNumIncluded; if the
   // score event is a match, recalculate the scores
-  for (RANKING_CLASS rankclass : {RANKING_CLASS::SINGLES, RANKING_CLASS::SINGLES})
+  for (RankingClass rankclass : {RankingClass::Singles, RankingClass::Singles})
   {
     // !!! Hier Weitermachen
 

@@ -14,7 +14,7 @@ namespace RankingApp {
   class ScoreQueue
   {
   public:
-    ScoreQueue(int _queueSize=SCORE_QUEUE_DEPTH);
+    ScoreQueue(int _queueSize=ScoreQueueDepth);
     ScoreQueue(int _queueSize, int initialScore);
     virtual ~ScoreQueue(){}
 

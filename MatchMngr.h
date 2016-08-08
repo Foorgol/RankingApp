@@ -31,7 +31,7 @@ namespace RankingApp {
 
     // getters
     upMatch getMatchById(int id) const;
-    upMatch getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass, bool confirmedMatchesOnly=true) const;
+    upMatch getLatestMatchForPlayer(const Player& p, const RankingClass& rankClass, bool confirmedMatchesOnly=true) const;
 
 
     // comparison functions for std::sort

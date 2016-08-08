@@ -25,9 +25,6 @@
 #define MA_MATCH_STORED_TIMESTAMP "MatchStoredAt"
 #define MA_MATCH_CONFIRMED_TIMESTAMP "MatchConfirmedAt"
 
-#define MA_STATE_STAGED 1
-#define MA_STATE_CONFIRMED 2
-
 // score events
 #define TAB_SCORE "ScoreEvent"
 #define SC_PLAYER_REF "PlayerRef"
@@ -37,16 +34,6 @@
 #define SC_TYPE "ScoringType"
 #define SC_MATCH_REF "MatchRef"
 #define SC_SCORE_TARGET "ScoreTarget"   // Singles or doubles
-
-// score event types
-// the types are numbered in order of precendence:
-// in case of identical timestamps for a score event,
-// initial scores go first, then matches, then penalty scores
-#define SC_TYPE_INITIAL 1
-#define SC_TYPE_MATCH 2
-#define SC_TYPE_IUM 3
-#define SC_TYPE_OTHER 4
-#define SC_TYPE_LAZYNESS 5
 
 #define SC_SCORE_TARGET_SINGLES 1
 #define SC_SCORE_TARGET_DOUBLES 2
@@ -62,26 +49,44 @@
 #define RA_RANKING_CLASS_SINGLES SC_SCORE_TARGET_SINGLES
 #define RA_RANKING_CLASS_DOUBLES SC_SCORE_TARGET_DOUBLES
 
-
-
-
-
-enum class RANKING_CLASS
+namespace RankingApp
 {
-  SINGLES,
-  DOUBLES
-};
 
-enum class MATCH_STATE
-{
-  STAGED,
-  CONFIRMED,
-};
+  enum class RankingClass
+  {
+    Singles,
+    Doubles
+  };
 
+  enum class MatchState
+  {
+    Staged,
+    Confirmed,
+  };
 
-#define SCORE_QUEUE_DEPTH 5
-#define MAX_RANK_VALUE 120
-#define RANK_VALUE_STEP 2
-#define MAX_ACTIVE_PLAYER_COUNT (MAX_RANK_VALUE / RANK_VALUE_STEP)
+  // score event types
+  // the types are listed in order of precendence:
+  // in case of identical timestamps for a score event,
+  // initial scores go first, then matches, then penalty scores
+  //
+  // when converted to int and stored in the database, "Initial"
+  // gets "1", "Match" gets "2", etc.
+  //
+  // ==> sorting in the SQL-call or by int-representation yields
+  // the correct order!
+  enum class ScoreType
+  {
+    Initial,
+    Match,
+    IUM,
+    Other,
+    Lazyness
+  };
+
+  static constexpr int ScoreQueueDepth = 5;
+  static constexpr int MaxRankValue = 120;
+  static constexpr int RankValueStep = 2;
+  static constexpr int MaxActivePlayerCount = (MaxRankValue / RankValueStep);
+}
 
 #endif  /* RANKINGDATADEFS_H */

@@ -39,14 +39,14 @@ namespace RankingApp {
     MatchMngr getMatchMngr();
 
     void recalcRankings(int maxSeqNumIncluded=-1);
-    PlainRankingEntryList recalcRanking(RANKING_CLASS rankClass, int maxSeqNumIncluded);
+    PlainRankingEntryList recalcRanking(RankingClass rankClass, int maxSeqNumIncluded);
     void storeRankingEntries(const PlainRankingEntryList& singlesRanking_sorted, const PlainRankingEntryList& doublesRanking_sorted);
-    int RankingClassToInt(RANKING_CLASS rc) const;
+    int RankingClassToInt(RankingClass rc) const;
 
     ERR confirmMatchAndUpdateRanking(const Match& ma);
-    PlainRankingEntryList getSortedRanking(RANKING_CLASS rankClass) const;
+    PlainRankingEntryList getSortedRanking(RankingClass rankClass) const;
 
-    int getInitialScoreForNewPlayer(RANKING_CLASS rankClass, date startDate);
+    int getInitialScoreForNewPlayer(RankingClass rankClass, date startDate);
 
     void setLogLevel(SeverityLevel newLvl);
 
@@ -54,7 +54,7 @@ namespace RankingApp {
     upRankingDb db;
     RankingSystem(upRankingDb _db);
     static unique_ptr<RankingSystem> doInit(const string& fname, bool doCreateNew, ERR* err);
-    void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RANKING_CLASS& rankClass);
+    void sortPlainRankingEntryListInPlace(PlainRankingEntryList& rel, const RankingClass& rankClass);
     void assignRanksAndValuesToSortedPlainRankingEntryListInPlace(PlainRankingEntryList& rel) const;
     void rewriteMatchScores(int maxSeqNumIncluded);
     date getDateForScoreSeqNum(int seqNum);

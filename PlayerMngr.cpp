@@ -109,7 +109,7 @@ ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipIn
 
   // check 3: make sure we don't have too many active players
   PlayerList activePlayers = getActivePlayersOnGivenDate(startDate);
-  if (activePlayers.size() >= MAX_ACTIVE_PLAYER_COUNT)
+  if (activePlayers.size() >= MaxActivePlayerCount)
   {
     return ERR::TOO_MANY_PLAYERS;
   }
@@ -119,8 +119,8 @@ ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipIn
   int iniScoreDoubles = -1;
   if (!skipInitialScore)
   {
-    iniScoreSingles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::SINGLES, startDate);
-    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RANKING_CLASS::DOUBLES, startDate);
+    iniScoreSingles = rs->getInitialScoreForNewPlayer(RankingClass::Singles, startDate);
+    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RankingClass::Doubles, startDate);
     if ((iniScoreSingles < 0) || (iniScoreDoubles < 0))
     {
       return ERR::COULD_NOT_DETERMINE_INITIAL_SCORE;
@@ -198,8 +198,8 @@ ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
 
   // step 3: make sure there aren't any matches for this player after the end date
   MatchMngr mm = MatchMngr(db, rs);
-  upMatch latestMatchSingles = mm.getLatestMatchForPlayer(p, RANKING_CLASS::SINGLES, false);
-  upMatch latestMatchDoubles = mm.getLatestMatchForPlayer(p, RANKING_CLASS::DOUBLES, false);
+  upMatch latestMatchSingles = mm.getLatestMatchForPlayer(p, RankingClass::Singles, false);
+  upMatch latestMatchDoubles = mm.getLatestMatchForPlayer(p, RankingClass::Doubles, false);
   if (latestMatchSingles != nullptr)
   {
     date maDate = latestMatchSingles->getMatchTime();

@@ -68,7 +68,7 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
   }
   cvc.addStringCol(MA_RESULT, score.toString());
   cvc.addDateCol(MA_DATE, date);
-  cvc.addIntCol(MA_STATE, MA_STATE_STAGED);
+  cvc.addIntCol(MA_STATE, static_cast<int>(MatchState::Staged));
   UTCTimestamp now{};
   cvc.addDateTimeCol(MA_MATCH_STORED_TIMESTAMP, &now);
   int newId = tab->insertRow(cvc);
@@ -87,13 +87,13 @@ upMatch MatchMngr::stageNewMatch_Singles(const Player& player1, const Player& pl
 ERR MatchMngr::confirmMatch(const Match& ma) const
 {
   // make sure the match is "staged"
-  if (ma.getState() != MATCH_STATE::STAGED)
+  if (ma.getState() != MatchState::Staged)
   {
     return ERR::MATCH_NOT_STAGED;
   }
 
   // update the match entry
-  int newState = Match::MatchStateToInt(MATCH_STATE::CONFIRMED);
+  int newState = static_cast<int>(MatchState::Confirmed);
   ColumnValueClause cvc;
   cvc.addIntCol(MA_STATE, newState);
   UTCTimestamp now{};
@@ -114,7 +114,7 @@ upMatch MatchMngr::getMatchById(int id) const
 
 //----------------------------------------------------------------------------
 
-upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RANKING_CLASS& rankClass, bool confirmedMatchesOnly) const
+upMatch MatchMngr::getLatestMatchForPlayer(const Player& p, const RankingClass& rankClass, bool confirmedMatchesOnly) const
 {
   //
   // THIS FUNCTION NEEDS TO BE RE-IMPLEMENTED

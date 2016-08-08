@@ -185,7 +185,7 @@ int importMatches(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRan
     cvc.addIntCol(MA_WINNER1_REF, winnerId);
     cvc.addIntCol(MA_LOSER1_REF, loserId);
     cvc.addIntCol(MA_RESULT, isThreeGames ? 1 : 0);
-    cvc.addIntCol(MA_STATE, MA_STATE_CONFIRMED);
+    cvc.addIntCol(MA_STATE, static_cast<int>(MatchState::Confirmed));
     cvc.addDateCol(MA_DATE, maDate);
     cvc.addIntCol(MA_MATCH_STORED_TIMESTAMP, lt.getRawTime());
     cvc.addIntCol(MA_MATCH_CONFIRMED_TIMESTAMP, lt.getRawTime());
@@ -264,7 +264,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     {
       int sc = stoi(sScore);
       _Score _sc;
-      _sc.reason = SC_TYPE_INITIAL;
+      _sc.reason = static_cast<int>(ScoreType::Initial);
       _sc.score = sc;
       _sc.date = *earliestActivationDate;
       _sc.playerRef = playerId;
@@ -310,7 +310,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
 
     if (reason == 1)   // Match
     {
-      sc.reason = SC_TYPE_MATCH;
+      sc.reason = static_cast<int>(ScoreType::Match);
       sc.matchRef = matchId_old2new[r.getInt("match_id")];
 
       // lookup the sequence number for this match, if it
@@ -331,13 +331,13 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
       switch (reason)
       {
       case 2:
-        sc.reason = SC_TYPE_LAZYNESS;
+        sc.reason = static_cast<int>(ScoreType::Lazyness);
         break;
       case 3:
-        sc.reason = SC_TYPE_IUM;
+        sc.reason = static_cast<int>(ScoreType::IUM);
         break;
       default:
-        sc.reason = SC_TYPE_OTHER;
+        sc.reason = static_cast<int>(ScoreType::Other);
       }
 
       sc.seqNum = seqNum;
@@ -383,7 +383,7 @@ int importScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, upRank
     cvc.addDateCol(SC_DATE, sc.date);
     cvc.addIntCol(SC_TYPE, sc.reason);
     cvc.addIntCol(SC_SCORE_TARGET, SC_SCORE_TARGET_SINGLES);
-    if (sc.reason == SC_TYPE_MATCH)
+    if (sc.reason == static_cast<int>(ScoreType::Match))
     {
       cvc.addIntCol(SC_MATCH_REF, sc.matchRef);
     }
@@ -452,7 +452,7 @@ int rebuildMatchScores(unique_ptr<NullDb>& srcDb, unique_ptr<RankingDb>& dstDb, 
     // calculate the ranking for everything up to but not including
     // the current match
     int scoreSeqNum = scoreRow1.getInt(SC_SEQ_NUM);
-    PlainRankingEntryList rel = rs->recalcRanking(RANKING_CLASS::SINGLES, scoreSeqNum - 1);
+    PlainRankingEntryList rel = rs->recalcRanking(RankingClass::Singles, scoreSeqNum - 1);
 
     // get winner and loser
     int winnerId = matchRow.getInt(MA_WINNER1_REF);

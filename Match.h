@@ -21,9 +21,7 @@ namespace RankingApp {
     friend class SqliteOverlay::GenericObjectManager<RankingDb>;
 
   public:
-    MATCH_STATE getState() const;
-    static int MatchStateToInt(MATCH_STATE state);
-    static MATCH_STATE intToMatchState(int state);
+    MatchState getState() const;
     bool isDoubles() const;
     greg::date getMatchTime() const;
 

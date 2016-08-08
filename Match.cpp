@@ -16,43 +16,11 @@ using namespace RankingApp;
 
 //----------------------------------------------------------------------------
 
-MATCH_STATE Match::getState() const
+MatchState Match::getState() const
 {
   int state = row.getInt(MA_STATE);
 
-  return intToMatchState(state);
-}
-
-//----------------------------------------------------------------------------
-
-int Match::MatchStateToInt(MATCH_STATE state)
-{
-  if (state == MATCH_STATE::STAGED)
-  {
-    return MA_STATE_STAGED;
-  }
-  if (state == MATCH_STATE::CONFIRMED)
-  {
-    return MA_STATE_CONFIRMED;
-  }
-
-  throw std::runtime_error("Encountered invalid match state");
-}
-
-//----------------------------------------------------------------------------
-
-MATCH_STATE Match::intToMatchState(int state)
-{
-  if (state == MA_STATE_STAGED)
-  {
-    return MATCH_STATE::STAGED;
-  }
-  if (state == MA_STATE_CONFIRMED)
-  {
-    return MATCH_STATE::CONFIRMED;
-  }
-
-  throw std::runtime_error("Encountered invalid match state");
+  return static_cast<MatchState>(state);
 }
 
 //----------------------------------------------------------------------------

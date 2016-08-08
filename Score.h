@@ -6,81 +6,100 @@
 #include <string>
 #include <vector>
 
+#include "RankingDb.h"
+#include "GenericDatabaseObject.h"
+#include "GenericObjectManager.h"
 
 using namespace std;
 
 namespace RankingApp {
 
-class GameScore
-{
-public:
-  static bool isValidScore(int sc1, int sc2);
-  static unique_ptr<GameScore> fromScore(int sc1, int sc2);
-  static unique_ptr<GameScore> fromString(const string& s);
-  static int getWinnerScoreForLoserScore(int loserScore);
+  class ScoreEvent : public GenericDatabaseObject<RankingDb>
+  {
+    friend class SqliteOverlay::GenericObjectManager<RankingDb>;
 
-  string toString() const;
+  public:
 
-  tuple<int, int> getScore() const;
-  int getWinner() const;
-  int getLoser() const;
-  int getWinnerScore() const;
-  int getLoserScore() const;
-  void swapPlayers();
+  private:
+    ScoreEvent(RankingDb* db, int rowId);
+    ScoreEvent(RankingDb* db, TabRow row);
+  };
 
-private:
-  GameScore(int sc1, int sc2);
+  typedef unique_ptr<ScoreEvent> upScoreEvent;
+  typedef vector<ScoreEvent> ScoreEventList;
 
-  int player1Score;
-  int player2Score;
+  //----------------------------------------------------------------------------
 
-};
+  class GameScore
+  {
+  public:
+    static bool isValidScore(int sc1, int sc2);
+    static unique_ptr<GameScore> fromScore(int sc1, int sc2);
+    static unique_ptr<GameScore> fromString(const string& s);
+    static int getWinnerScoreForLoserScore(int loserScore);
 
-typedef vector<GameScore> GameScoreList;
+    string toString() const;
 
-class MatchScore
-{
-public:
-  static unique_ptr<MatchScore> fromString(const string& s);
-  static unique_ptr<MatchScore> fromStringWithoutValidation(const string& s);
-  static unique_ptr<MatchScore> fromGameScoreList(const GameScoreList& gsl);
-  static unique_ptr<MatchScore> fromGameScoreListWithoutValidation(const GameScoreList& gsl);
-  static bool isValidScore(const string& s);
-  static bool isValidScore(const GameScoreList& gsl);
-  bool isValidScore() const;
+    tuple<int, int> getScore() const;
+    int getWinner() const;
+    int getLoser() const;
+    int getWinnerScore() const;
+    int getLoserScore() const;
+    void swapPlayers();
 
-  string toString() const;
+  private:
+    GameScore(int sc1, int sc2);
 
-  int getWinner() const;
-  int getLoser() const;
+    int player1Score;
+    int player2Score;
 
-  int getNumGames() const;
-  int getPointsSum() const;
+  };
+  typedef vector<GameScore> GameScoreList;
 
-  unique_ptr<GameScore> getGame(int n) const;
+  //----------------------------------------------------------------------------
 
-  tuple<int, int> getScoreSum() const;
+  class MatchScore
+  {
+  public:
+    static unique_ptr<MatchScore> fromString(const string& s);
+    static unique_ptr<MatchScore> fromStringWithoutValidation(const string& s);
+    static unique_ptr<MatchScore> fromGameScoreList(const GameScoreList& gsl);
+    static unique_ptr<MatchScore> fromGameScoreListWithoutValidation(const GameScoreList& gsl);
+    static bool isValidScore(const string& s);
+    static bool isValidScore(const GameScoreList& gsl);
+    bool isValidScore() const;
 
-  tuple<int, int> getGameSum() const;
-  static tuple<int, int> getGameSum(const GameScoreList& gsl);
+    string toString() const;
 
-  tuple<int, int> getMatchSum() const;
+    int getWinner() const;
+    int getLoser() const;
 
-  static unique_ptr<MatchScore> genRandomScore(int numWinGames=2, bool drawAllowed=false);
+    int getNumGames() const;
+    int getPointsSum() const;
 
-  void swapPlayers();
+    unique_ptr<GameScore> getGame(int n) const;
 
-private:
-  MatchScore() {}
-  bool addGame(const GameScore& sc);
-  bool addGame(const string& scString);
-  static GameScoreList string2GameScoreList(const string& s);
+    tuple<int, int> getScoreSum() const;
 
-  GameScoreList games;
+    tuple<int, int> getGameSum() const;
+    static tuple<int, int> getGameSum(const GameScoreList& gsl);
 
-};
+    tuple<int, int> getMatchSum() const;
 
-typedef vector<MatchScore> MatchScoreList;
+    static unique_ptr<MatchScore> genRandomScore(int numWinGames=2, bool drawAllowed=false);
+
+    void swapPlayers();
+
+  private:
+    MatchScore() {}
+    bool addGame(const GameScore& sc);
+    bool addGame(const string& scString);
+    static GameScoreList string2GameScoreList(const string& s);
+
+    GameScoreList games;
+
+  };
+  typedef vector<MatchScore> MatchScoreList;
 
 }
 #endif // SCORE_H

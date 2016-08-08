@@ -81,7 +81,8 @@ set(LIB_SOURCES
     Player.cpp
     ValidityPeriod.cpp
 #    ScoreQueue.cpp
-#    Score.cpp
+    Score.cpp
+    ScoreMngr.cpp
 #    MatchMngr.cpp
 #    Match.cpp
     RankingClass.cpp

@@ -85,7 +85,7 @@ unique_ptr<date> ValidityPeriod::getPeriodEnd() const
 RankingClass ValidityPeriod::getRankingClass() const
 {
   int rcId = row.getInt(VA_RANK_CLASS_REF);
-  RankingClassMngr rcm{this};
+  RankingClassMngr rcm{db};
   return *(rcm.getRankingClassById(rcId));
 }
 

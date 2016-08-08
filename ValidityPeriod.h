@@ -36,7 +36,7 @@ namespace RankingApp {
     // getters
     date getPeriodStart() const;
     unique_ptr<date> getPeriodEnd() const;
-    //RankingClass getRankingClass() const;
+    RankingClass getRankingClass() const;
     Player getPlayer() const;
 
     // comparison functions for std::sort

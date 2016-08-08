@@ -91,7 +91,7 @@ set(LIB_SOURCES
 #
 include_directories("." ${SQLITE_OVERLAY_INCLUDE_DIR} "./gsl")
 link_directories("." ${SQLITE_OVERLAY_LIB_DIR})
-add_library(${PROJECT_NAME}_Logic STATIC ${LIB_SOURCES})
+add_library(${PROJECT_NAME}_Logic SHARED ${LIB_SOURCES})
 set_property(TARGET ${PROJECT_NAME}_Logic PROPERTY CXX_STANDARD 14)
 set_property(TARGET ${PROJECT_NAME}_Logic PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME}_Logic ${SQLITE_OVERLAY_LIB})
@@ -102,6 +102,13 @@ if (BUILD_WEB_APP)
     set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Logic ${WT_LIB} ${WT_CONNECTOR} ${Sloppy_LIB})
 endif (BUILD_WEB_APP)
+
+#if (BUILD_IMPORTER AND Boost_FOUND)
+#    add_executable(${PROJECT_NAME}_importer ${IMPORTER_SOURCES})
+#    set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD 14)
+#    set_property(TARGET ${PROJECT_NAME}_importer PROPERTY CXX_STANDARD_REQUIRED ON)
+#    target_link_libraries(${PROJECT_NAME}_importer ${PROJECT_NAME}_Logic ${Boost_LIBRARIES} ${SQLITE_OVERLAY_LIB} ${Sloppy_LIB})
+#endif (BUILD_IMPORTER AND Boost_FOUND)
 
 if (BUILD_IMPORTER AND Boost_FOUND)
     add_executable(${PROJECT_NAME}_importer ${IMPORTER_SOURCES})

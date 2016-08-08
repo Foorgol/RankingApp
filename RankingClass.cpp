@@ -22,7 +22,7 @@ namespace RankingApp
   //----------------------------------------------------------------------------
 
   RankingClass::RankingClass(RankingDb* db, int rowId)
-    :GenericDatabaseObject(db, TAB_RANKING_CLASSES, rowId)
+    :GenericDatabaseObject(db, TAB_RANKING_CLASS, rowId)
   {
   }
 

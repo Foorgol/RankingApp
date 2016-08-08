@@ -12,16 +12,12 @@
 using namespace RankingApp;
 
 
-PlayerMngr::PlayerMngr(RankingDb* _db, RankingSystem* _rs)
-  :GenericObjectManager(_db, TAB_PLAYER), rs(_rs)
+PlayerMngr::PlayerMngr(RankingDb* _db)
+  :GenericObjectManager(_db, TAB_PLAYER)
 {
   if (_db == nullptr)
   {
     throw std::invalid_argument("Received nullptr as database handle");
-  }
-  if (_rs == nullptr)
-  {
-    throw std::invalid_argument("Received nullptr as ranking system handle");
   }
 
   validityTab = db->getTab(TAB_VALIDITY);
@@ -85,12 +81,13 @@ upPlayer PlayerMngr::getPlayerById(int id) const
 
 //----------------------------------------------------------------------------
 
-ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipInitialScore) const
+ERR PlayerMngr::enablePlayer(const Player& p, const RankingClass& rankClass, const date& startDate, bool skipInitialScore) const
 {
   // check 1: make sure that all existing time periods are closed
   // before we open a new one
   WhereClause w;
   w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
   w.addNullCol(VA_PERIOD_END);
   if (validityTab->getMatchCountForWhereClause(w) != 0)
   {
@@ -99,7 +96,10 @@ ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipIn
 
   // check 2: make sure that the new start date is later than all
   // existing validity periods
-  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
+  w.clear();
+  w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
+  auto allPeriods = getObjectsByWhereClause<ValidityPeriod>(validityTab, w);
   for (ValidityPeriod vp : allPeriods)
   {
     if (vp.determineRelationToPeriod(startDate) != ValidityPeriod::IS_AFTER_PERIOD)
@@ -109,29 +109,25 @@ ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipIn
   }
 
   // check 3: make sure we don't have too many active players
-  PlayerList activePlayers = getActivePlayersOnGivenDate(startDate);
+  PlayerList activePlayers = getActivePlayersOnGivenDate(rankClass, startDate);
   if (activePlayers.size() >= MaxActivePlayerCount)
   {
     return ERR::TOO_MANY_PLAYERS;
   }
 
   // determine the initial score
-  int iniScoreSingles = -1;
-  int iniScoreDoubles = -1;
+  int iniScore = -1;
   if (!skipInitialScore)
   {
-    iniScoreSingles = rs->getInitialScoreForNewPlayer(RankingClass::Singles, startDate);
-    iniScoreDoubles = rs->getInitialScoreForNewPlayer(RankingClass::Doubles, startDate);
-    if ((iniScoreSingles < 0) || (iniScoreDoubles < 0))
-    {
-      return ERR::COULD_NOT_DETERMINE_INITIAL_SCORE;
-    }
+    // FIX ME: this needs to be implemented!!
+    return ERR::COULD_NOT_DETERMINE_INITIAL_SCORE;
   }
 
   // everything is okay and we can setup the new period
   ColumnValueClause cvc;
   cvc.addIntCol(VA_PLAYER_REF, p.getId());
   cvc.addDateCol(VA_PERIOD_START, startDate);
+  cvc.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
   validityTab->insertRow(cvc);
 
   //
@@ -174,11 +170,12 @@ ERR PlayerMngr::enablePlayer(const Player& p, const date& startDate, bool skipIn
 
 //----------------------------------------------------------------------------
 
-ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
+ERR PlayerMngr::disablePlayer(const Player& p, const RankingClass& rankClass, const date& endDate) const
 {
   // step 1: get the currently open period
   WhereClause w;
   w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
   w.addNullCol(VA_PERIOD_END);
   if (validityTab->getMatchCountForWhereClause(w) == 0)
   {
@@ -198,6 +195,10 @@ ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
   }
 
   // step 3: make sure there aren't any matches for this player after the end date
+  //
+  // FIX ME: adapt the match manager and re-enable this section!!
+  //
+  /*
   MatchMngr mm = MatchMngr(db, rs);
   upMatch latestMatchSingles = mm.getLatestMatchForPlayer(p, RankingClass::Singles, false);
   upMatch latestMatchDoubles = mm.getLatestMatchForPlayer(p, RankingClass::Doubles, false);
@@ -216,7 +217,7 @@ ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
     {
       return ERR::END_DATE_TOO_EARLY;
     }
-  }
+  }*/
 
   // everything is okay, we can disable the player
   vp->row.update(VA_PERIOD_END, endDate);
@@ -226,10 +227,13 @@ ERR PlayerMngr::disablePlayer(const Player& p, const date& endDate) const
 
 //----------------------------------------------------------------------------
 
-bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const date& d) const
+bool PlayerMngr::isPlayerEnabledOnSpecificDate(const Player& p, const RankingClass& rankClass, const date& d) const
 {
   // check if the date is part of any validity period
-  auto allPeriods = getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
+  WhereClause w;
+  w.addIntCol(VA_PLAYER_REF, p.getId());
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
+  auto allPeriods = getObjectsByWhereClause<ValidityPeriod>(validityTab, w);
   for (ValidityPeriod vp : allPeriods)
   {
     if (vp.isInPeriod(d))
@@ -265,15 +269,17 @@ std::function<bool (Player&, Player&)> PlayerMngr::getPlayerSortFunction_byLastN
 
 //----------------------------------------------------------------------------
 
-vector<ValidityPeriod> PlayerMngr::getValidityPeriodsForPlayer(const Player& p) const
+vector<ValidityPeriod> PlayerMngr::getValidityPeriodsForPlayer_Global(const Player& p) const
 {
+  // retrieves all periods for all ranking classes!
   return getObjectsByColumnValue<ValidityPeriod>(validityTab, VA_PLAYER_REF, p.getId());
 }
 
 //----------------------------------------------------------------------------
 
-unique_ptr<greg::date> PlayerMngr::getEarliestActivationDateForPlayer(const Player& p) const
+unique_ptr<greg::date> PlayerMngr::getEarliestActivationDateForPlayer_Global(const Player& p) const
 {
+  // searches over all ranking classes!
   WhereClause w;
   w.addIntCol(VA_PLAYER_REF, p.getId());
   w.addNotNullCol(VA_PERIOD_START);
@@ -286,8 +292,11 @@ unique_ptr<greg::date> PlayerMngr::getEarliestActivationDateForPlayer(const Play
 
 //----------------------------------------------------------------------------
 
-unique_ptr<greg::date> PlayerMngr::getLatestDeactivationDateForPlayer(const Player& p) const
+unique_ptr<greg::date> PlayerMngr::getLatestDeactivationDateForPlayer_Global(const Player& p) const
 {
+  // searches over all ranking classes!
+
+
   // is there a validity period item with end == NULL?
   WhereClause w;
   w.addIntCol(VA_PLAYER_REF, p.getId());
@@ -317,19 +326,40 @@ PlayerList PlayerMngr::getAllPlayers() const
 
 //----------------------------------------------------------------------------
 
-PlayerList PlayerMngr::getActivePlayersOnGivenDate(const greg::date& date) const
+PlayerList PlayerMngr::getActivePlayersOnGivenDate(const RankingClass& rankClass, const date& d) const
 {
+  // part 1: players that have been activated on "d" or later and that are
+  // still active (no period end is set)
+  WhereClause w;
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
+  w.addNullCol(VA_PERIOD_END);
+  w.addIntCol(VA_PERIOD_START, ">=", greg::to_int(d));
+  auto val1 = getObjectsByWhereClause<ValidityPeriod>(validityTab, w);
+
+  // part 1: players that have been activated on "d" or later and that are
+  // not active anymore (period end is less or equal to "d")
+  w.clear();
+  w.addIntCol(VA_RANK_CLASS_REF, rankClass.getId());
+  w.addIntCol(VA_PERIOD_START, ">=", greg::to_int(d));
+  w.addIntCol(VA_PERIOD_END, "<=", greg::to_int(d));
+  auto val2 = getObjectsByWhereClause<ValidityPeriod>(validityTab, w);
+
+  // merge both lists into a single one
   PlayerList result;
-  for (Player p : getAllPlayers())
+  for (const ValidityPeriod& vp : val1)
   {
-    if (isPlayerEnabledOnSpecificDate(p, date))
-    {
-      result.push_back(p);
-    }
+    result.push_back(vp.getPlayer());
+  }
+  for (const ValidityPeriod& vp : val2)
+  {
+    result.push_back(vp.getPlayer());
   }
 
   return result;
 }
+
+//----------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------
 

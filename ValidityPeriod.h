@@ -16,6 +16,9 @@ using namespace boost::gregorian;
 
 namespace RankingApp {
 
+  class RankingClass;
+  class Player;
+
   class ValidityPeriod : public GenericDatabaseObject<RankingDb>
   {
     friend class PlayerMngr;
@@ -33,6 +36,8 @@ namespace RankingApp {
     // getters
     date getPeriodStart() const;
     unique_ptr<date> getPeriodEnd() const;
+    //RankingClass getRankingClass() const;
+    Player getPlayer() const;
 
     // comparison functions for std::sort
     static std::function<bool (ValidityPeriod&, ValidityPeriod&)> getPlayerSortFunction_byActivationDate();

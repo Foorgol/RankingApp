@@ -17,12 +17,12 @@ using namespace boost::gregorian;
 
 namespace RankingApp {
 
-  class RankingSystem;
+  class RankingClass;
 
   class PlayerMngr : public GenericObjectManager<RankingDb>
   {
   public:
-    PlayerMngr(RankingDb* _db, RankingSystem* _rs);
+    PlayerMngr(RankingDb* _db);
 
     // create
     upPlayer createNewPlayer(const string& firstName, const string& lastName, ERR* err=nullptr) const;
@@ -30,23 +30,22 @@ namespace RankingApp {
     // getters
     upPlayer getPlayerByName(const string& firstName, const string& lastName) const;
     upPlayer getPlayerById(int id) const;
-    vector<ValidityPeriod> getValidityPeriodsForPlayer(const Player& p) const;
-    unique_ptr<date> getEarliestActivationDateForPlayer(const Player& p) const;
-    unique_ptr<date> getLatestDeactivationDateForPlayer(const Player& p) const;
+    vector<ValidityPeriod> getValidityPeriodsForPlayer_Global(const Player& p) const;
+    unique_ptr<date> getEarliestActivationDateForPlayer_Global(const Player& p) const;
+    unique_ptr<date> getLatestDeactivationDateForPlayer_Global(const Player& p) const;
     PlayerList getAllPlayers() const;
-    PlayerList getActivePlayersOnGivenDate(const date& date) const;
+    PlayerList getActivePlayersOnGivenDate(const RankingClass& rankClass, const date& d) const;
 
 
     // modify player validity / activity
-    ERR enablePlayer(const Player& p, const date& startDate, bool skipInitialScore=false) const;
-    ERR disablePlayer(const Player& p, const date& endDate) const;
-    bool isPlayerEnabledOnSpecificDate(const Player& p, const date& d) const;
+    ERR enablePlayer(const Player& p, const RankingClass& rankClass, const date& startDate, bool skipInitialScore=false) const;
+    ERR disablePlayer(const Player& p, const RankingClass& rankClass, const date& endDate) const;
+    bool isPlayerEnabledOnSpecificDate(const Player& p, const RankingClass& rankClass, const date& d) const;
 
     // comparison functions for std::sort
     static std::function<bool (Player&, Player&)> getPlayerSortFunction_byLastName();
 
   private:
-    RankingSystem* rs;
     DbTab* validityTab;
 
   };

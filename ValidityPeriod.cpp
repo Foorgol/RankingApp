@@ -4,6 +4,8 @@
 #include "ConvenienceFuncs.h"
 #include "RankingDataDefs.h"
 #include "TabRow.h"
+#include "RankingClass.h"
+#include "PlayerMngr.h"
 
 using namespace RankingApp;
 
@@ -75,6 +77,15 @@ unique_ptr<date> ValidityPeriod::getPeriodEnd() const
   if (end->isNull()) return nullptr;
 
   return unique_ptr<date>(new date(end->get()));
+}
+
+//----------------------------------------------------------------------------
+
+Player ValidityPeriod::getPlayer() const
+{
+  int pId = row.getInt(VA_PLAYER_REF);
+  PlayerMngr pm{db};
+  return *(pm.getPlayerById(pId));
 }
 
 //----------------------------------------------------------------------------

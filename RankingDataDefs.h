@@ -7,11 +7,17 @@
 #define PL_FIRSTNAME "FirstName"
 #define PL_LASTNAME "LastName"
 
+// a list of managed rankings (singles, doubles, mixed, U19, ...)
+#define TAB_RANKING_CLASS "RankingClass"
+#define RC_NAME "Name"
+#define RC_IS_SINGLES "IsSingles"
+
 // a table with activity / validity perdiods for players
 #define TAB_VALIDITY "ValidityPeriod"
 #define VA_PLAYER_REF "PlayerRef"
 #define VA_PERIOD_START "PeriodStart"
 #define VA_PERIOD_END "PeriodEnd"
+#define VA_RANK_CLASS_REF "RankingClassRef"
 
 // matches
 #define TAB_MATCH "Match"
@@ -24,11 +30,6 @@
 #define MA_STATE "State"  // "Staged" or "Confirmed"
 #define MA_MATCH_STORED_TIMESTAMP "MatchStoredAt"
 #define MA_MATCH_CONFIRMED_TIMESTAMP "MatchConfirmedAt"
-
-// a list of managed rankings (singles, doubles, mixed, U19, ...)
-#define TAB_RANKING_CLASSES "RankingClasses"
-#define RC_NAME "Name"
-#define RC_IS_SINGLES "IsSingles"
 
 // score events
 #define TAB_SCORE "ScoreEvent"
